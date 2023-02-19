@@ -24,6 +24,7 @@ def playerAdminStateChanged(serverId, playerName):
     print("Player %s is now an admin" % (playerName))
 
 async def main():
+    print("Launching main")
 
     if os.getenv("SERVER_A_IP") is None:
         print("Loading local environment")
@@ -55,9 +56,15 @@ async def main():
 
     print("Finished initialization")
 
+    i = 0
     while(True):
+        i = i + 1
+        if i >= 10:
+            break
+        print("Sleeping 5s")
         await asyncio.sleep(5)
 
-print("Done")
+    print("Done")
 
+print("Starting loop")
 asyncio.run(main())
