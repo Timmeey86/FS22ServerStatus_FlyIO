@@ -6,8 +6,8 @@ import asyncio
 
 class ServerTrackerEvents(Events):
     """Defines events to be subscribed to"""
-    __events__ = ('playerWentOffline', 'playerWentOnline', 'serverWentOffline',
-                  'serverWentOnline', 'playerAdminStateChanged', 'playerCountChanged', 'onlineStateChanged', 'updated')
+    __events__ = ('playerWentOffline', 'playerWentOnline', 'serverStatusChanged',
+                  'playerAdminStateChanged', 'playerCountChanged', 'updated', 'initial')
 
 
 class ServerTracker:
@@ -15,7 +15,7 @@ class ServerTracker:
 
     def __init__(self, serverConfig):
         self.events = ServerTrackerEvents()
-        self.lastKnownServerState = FS22ServerStatus()
+        self.lastknownServerData = FS22ServerStatus()
         self.serverId = serverConfig.id
         self.serverAccess = FS22ServerAccess(serverConfig)
         self.task = None
@@ -29,14 +29,51 @@ class ServerTracker:
         self.cancelled = True
 
     async def track_server_status(self):
+        firstTime = True
         while not self.cancelled:
             try:
-                currentStatus = self.serverAccess.get_current_status()
-                if currentStatus is not None:
-                    print("Server %s is %s with %s players" % (currentStatus.serverName,
-                        currentStatus.status.name, len(currentStatus.onlinePlayers)))
+                currentData = self.serverAccess.get_current_status()
+
+                # Send a single initial update when tracking starts
+                if firstTime:
+                    self.events.initial(self.serverId, currentData)
+                    firstTime = False
+
+                # Send other events for every update
+                if currentData is not None:
+                    self.send_events(currentData)
+                    self.lastknownServerData = currentData
                 else:
                     print("No status")
             except Exception as e:
                 print("Error: %s" % e)
             await asyncio.sleep(5)
+
+    def send_events(self, currentData):
+
+        # Handle players which are now offline first, in case the server went down or they logged on another server
+        for playerName in self.lastknownServerData.onlinePlayers:
+            if playerName not in currentData.onlinePlayers:
+                self.events.playerWentOffline(self.serverId, playerName)
+
+        # Handle server state changes and send full data in that case
+        if self.lastknownServerData.status != currentData.status:
+            self.events.serverStatusChanged(self.serverId, currentData)
+
+        # Handle recently logged in players now
+        for playerName in currentData.onlinePlayers:
+            if playerName not in self.lastknownServerData.onlinePlayers:
+                self.events.playerWentOnline(self.serverId, playerName)
+
+            if ((playerName not in self.lastknownServerData.onlinePlayers or
+                    not self.lastknownServerData.onlinePlayers[playerName].isAdmin) 
+                    and currentData.onlinePlayers[playerName].isAdmin):
+                self.events.playerAdminStateChanged(self.serverId, playerName)
+
+        # Send a single event whenever the player count changed, for listeners which do not need to know which players are online
+        if len(self.lastknownServerData.onlinePlayers) != len(currentData.onlinePlayers):
+            self.events.playerCountChanged(
+                self.serverId, len(currentData.onlinePlayers))
+
+        # Send an update event with full data to handle any remaining case in the listener
+        self.events.updated(self.serverId, currentData)
