@@ -1,0 +1,8 @@
+# fly.toml file generated for fs22serverstatus on 2023-02-19T10:14:04+01:00
+
+app = "fs22serverstatus"
+kill_signal = "SIGINT"
+kill_timeout = 5
+processes = []
+
+[env]
