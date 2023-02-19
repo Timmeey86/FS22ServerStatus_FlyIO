@@ -1,4 +1,4 @@
-# fly.toml file generated for fs22serverstatus on 2023-02-19T10:14:04+01:00
+# fly.toml file generated for fs22serverstatus on 2023-02-19T13:41:22+01:00
 
 app = "fs22serverstatus"
 kill_signal = "SIGINT"

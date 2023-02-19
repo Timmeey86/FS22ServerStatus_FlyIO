@@ -1,3 +1,5 @@
 discord.py>=2.1.1
 xmltodict>=0.13.0
 urllib3>=1.26.9
+python-dotenv>=0.21.1
+Events>=0.4
