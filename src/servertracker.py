@@ -29,11 +29,9 @@ class ServerTracker:
         self.cancelled = True
 
     async def track_server_status(self):
-        print("Testing")
         firstTime = True
         while not self.cancelled:
             try:
-                print("Test 1")
                 currentData = self.serverAccess.get_current_status()
 
                 # Send a single initial update when tracking starts
@@ -41,10 +39,8 @@ class ServerTracker:
                     self.events.initial(self.serverId, currentData)
                     firstTime = False
 
-                print("Test 2")
                 # Send other events for every update
                 if currentData is not None:
-                    print("Test 3")
                     self.send_events(currentData)
                     self.lastknownServerData = currentData
                 else:
@@ -52,6 +48,8 @@ class ServerTracker:
             except Exception as e:
                 print("Error: %s" % e)
             await asyncio.sleep(60)
+
+        print("Tracker was cancelled")
 
     def send_events(self, currentData):
 
