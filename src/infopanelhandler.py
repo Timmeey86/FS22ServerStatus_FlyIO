@@ -49,26 +49,26 @@ class InfoPanelHandler:
     async def update_panels(self):
         while self.enabled == True:
             await asyncio.sleep(10)
-            print("Checking for panel update")
+            print("[InfoPanelHandler] Checking for panel update")
             with self.lock:
                 for serverId in self.configs:
                     if serverId in self.pendingServerData and self.pendingServerData[serverId] is not None:
                         data = self.pendingServerData[serverId]
                         config = self.configs[serverId]
-                        print("Updating server %s (%s) with server name %s" %
+                        print("[InfoPanelHandler] Updating server %s (%s) with server name %s" %
                               (serverId, config.title, data.serverName))
-        print("InfoPanelHandler was aborted")
+                        # Don't process again until there is a new update
+                        self.pendingServerData[serverId] = None
+        print("[InfoPanelHandler] InfoPanelHandler was aborted")
         self.task = None
 
     ### Event listeners ###
 
     def on_initial_event(self, serverId, serverData):
-        print("[InfoPanelHandler] Processing initial event")
         with self.lock:
             self.pendingServerData[serverId] = serverData
 
     def on_updated(self, serverId, serverData):
-        print("[InfoPanelHandler] Processing update event")
         """Queues the current server data for being sent to discord on each update.
         The discord embed will be updated at fixed time intervals."""
         with self.lock:

@@ -11,38 +11,45 @@ stopped = False
 
 
 def initial(serverId, serverData):
-    print("Received initial event for server %s" % (serverId))
+    print("[main] Received initial event for server %s" % (serverId))
 
 
 def updated(serverId, serverData):
-    # print("Received update event for server %s" % (serverId, serverData.__dict__))
+    # print("[main]Received update event for server %s" % (serverId, serverData.__dict__))
     pass
 
 
 def playerWentOnline(serverId, playerName):
-    print("Player %s joined server %s" % (playerName, serverId))
+    print("[main] Player %s joined server %s" % (playerName, serverId))
 
 
 def playerWentOffline(serverId, playerName):
-    print("Player %s logged out from server %s" % (playerName, serverId))
+    print("[main] Player %s logged out from server %s" % (playerName, serverId))
 
 
 def serverStatusChanged(serverId, serverData):
-    print("Server %s is now %s" % (serverId, serverData.status.name))
+    print("[main] Server %s is now %s" % (serverId, serverData.status.name))
 
 
 def playerAdminStateChanged(serverId, playerName):
-    print("Player %s is now an admin" % (playerName))
+    print("[main] Player %s is now an admin" % (playerName))
 
 
 async def main():
-    print("Launching main")
+    print("[main] Launching main")
+
+    if os.path.exists("/data"):
+        print("[main] /data exists")
+    if os.path.exists("/data/storage"):
+        print("[main] /data/storage exists")
+    if os.path.exists("C:/temp"):
+        print("[main] C:\\temp exists")
 
     if os.getenv("SERVER_A_IP") is None:
-        print("Loading local environment")
+        print("[main] Loading local environment")
         load_dotenv()
     else:
-        print("Using existing environment")
+        print("[main] Using existing environment")
 
     serverA = FS22ServerConfig(0, os.getenv("SERVER_A_IP"), os.getenv(
         "SERVER_A_PORT"), os.getenv("SERVER_A_APICODE"))
@@ -55,9 +62,9 @@ async def main():
 
     serverConfigs = [serverA, serverB, serverC, serverD]
 
-    testConfig = InfoPanelConfig(os.getenv("SERVER_B_IP"), os.getenv("SERVER_B_PORT"), "tmp", "tmpTitle", "0", "1", "2", "blue")
+    testConfig = InfoPanelConfig(os.getenv("SERVER_C_IP"), os.getenv("SERVER_C_PORT"), "tmp", "tmpTitle", "0", "1", "2", "blue")
     testHandler = InfoPanelHandler()
-    testHandler.add_config(0, testConfig)
+    testHandler.add_config(2, testConfig)
 
     for serverConfig in serverConfigs:
         tracker = ServerTracker(serverConfig)
@@ -71,24 +78,24 @@ async def main():
         tracker.events.playerAdminStateChanged += playerAdminStateChanged
         tracker.start_tracker()
 
-    print("Finished initialization")
+    print("[main] Finished initialization")
     testHandler.start()
 
     while (not stopped):
-        print("Sleeping 60s", flush=True)
+        print("[main] Sleeping 60s", flush=True)
         await asyncio.sleep(60)
 
-    print("Waiting for threads to end")
+    print("[main] Waiting for threads to end")
     testHandler.stop()
-    print("Done")
+    print("[main] Done")
 
 
 def signal_handler(sig, frame):
-    print("Caught Ctrl+C. Stopping")
+    print("[main] Caught Ctrl+C. Stopping")
     stopped = True
     sys.exit(0)
 
 
 signal.signal(signal.SIGINT, signal_handler)
-print("Starting loop")
+print("[main] Starting loop")
 asyncio.run(main())
