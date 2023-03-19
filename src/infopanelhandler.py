@@ -1,4 +1,3 @@
-from queue import Queue
 from threading import Lock
 import asyncio
 
