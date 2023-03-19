@@ -6,11 +6,15 @@ import xmltodict
 class FS22ServerConfig:
     """Contains data required for accessing an FS22 server"""
 
-    def __init__(self, id, ip, port, apiCode):
+    def __init__(self, id, ip, port, apiCode, icon, title, color, guildId):
         self.id = id
         self.ip = ip
         self.port = port
         self.apiCode = apiCode
+        self.icon = icon
+        self.title = title
+        self.color = color
+        self.guildId = guildId
 
     def status_xml_url(self):
         """Retrieves the URL to the XML file which provides status information about the server"""

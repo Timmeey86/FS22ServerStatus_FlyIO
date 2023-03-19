@@ -20,31 +20,76 @@ client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 commandHandler = CommandHandler()
 
-#Allows adding a server embed to an already registered server
-@tree.command(name="fssb_add_embed",
-              description="Adds an embed for a new server to this channel")
-@app_commands.describe(
-  id="The ID of the server",
-  flag="The flag to display (copy a flag emoji in here)",
-  title="The title of the server",
-  color="The color code which identifies the server, like 992D22")
-async def fssb_add_embed(interaction, id: int, flag: str, title: str, color: str):
-    await commandHandler.add_embed(interaction, id, flag, title, color)
 
-@tree.command(name="fssb_good_morning", description="Says good morning")
+@tree.command(name="fssb_add_embed",
+              description="Adds an embed to this channel displaying live info about the FS22 server")
+@app_commands.describe(
+    id="The ID of the server")
+async def fssb_add_embed(interaction, id: int):
+    await commandHandler.add_embed(interaction, id)
+
+
+@tree.command(name="fssb_set_member_channel",
+              description="Sets this channel as the target channel for online/offline/admin player messages")
+@app_commands.describe(
+    id="The ID of the server")
+async def fssb_set_member_channel(interaction, id: int):
+    await commandHandler.set_member_channel(interaction, id)
+
+
+@tree.command(name="fssb_set_server_channel",
+              description="Sets this channel as the target channel for online/offline server messages")
+@app_commands.describe(id="The ID of the server")
+async def fssb_set_server_channel(interaction, id: int):
+    await commandHandler.set_server_channel(interaction, id)
+
+
+@tree.command(name="fssb_set_status_channel",
+              description="Make this channel display the online state and player count in its name")
+@app_commands.describe(id="The ID of the server", shortname="The short name for the server")
+async def fssb_set_status_channel(interaction, id: int, shortname: str):
+    await commandHandler.set_status_channel(interaction, id, shortname)
+
+
+@tree.command(name="fssb_set_bot_status_channel",
+              description="Make this channel display status messages concerning the bot")
 @app_commands.describe()
-async def fssb_good_morning(interaction):    
+async def fssb_set_bot_status_channel(interaction):
+    await commandHandler.set_bot_status_channel(interaction)
+
+
+@tree.command(name="fssb_register_server",
+              description="Register an FS22 server to be tracked by this bot. Required for other commands")
+@app_commands.describe(
+    ip="The IP address or hostname of the FS22 server (the game server, not the server host)",
+    port="The port to access the server on",
+    apicode="The API code required for accessing the FS22 status XML file",
+    icon="The Icon to be displayed (e.g. a flag like :flag_uk:)",
+    title="The title of the server (anything you like)",
+    color="The color code to be used in various messages, e.g. FF0000 for red (RGB Hex)")
+async def fssb_register_server(interaction, ip: str, port: str, apicode: str, icon: str, title: str, color: str):
+    await commandHandler.register_server(interaction, ip, port, apicode, icon, title, color)
+
+@tree.command(name="fssb_remove_server",
+              description="Stops tracking an FS22 server")
+@app_commands.describe(id="The server ID")
+async def fssb_remove_server(interaction, id: int):
+    await commandHandler.remove_server(interaction, id)
+
+@tree.command(name="fssb_send_message", description="Makes the bot send a message for you")
+@app_commands.describe(message="The message you would like to send")
+async def fssb_send_message(interaction, message: str):
     if not interaction.permissions.administrator:
         await interaction.response.send_message(
-                content="Only administrators are allowed to run commands on this bot",
-                ephemeral=True,
-                delete_after=10)
+            content="Only administrators are allowed to run commands on this bot",
+            ephemeral=True,
+            delete_after=10)
         return
-    await interaction.channel.send("Good morning, farmers")
+    await interaction.channel.send(message)
     await interaction.response.send_message(
-        content="Done", 
+        content="Done",
         ephemeral=True,
-        delete_after=10)
+        delete_after=1)
 
 """
 def initial(serverId, serverData):
@@ -72,6 +117,7 @@ def playerAdminStateChanged(serverId, playerName):
     print("[main] Player %s is now an admin" % (playerName))
 """
 
+
 @client.event
 async def on_ready():
     """
@@ -89,36 +135,37 @@ async def on_ready():
         print("[main] C:\\temp exists")
 
     serverA = FS22ServerConfig(0, os.getenv("SERVER_A_IP"), os.getenv(
-        "SERVER_A_PORT"), os.getenv("SERVER_A_APICODE"))
+        "SERVER_A_PORT"), os.getenv("SERVER_A_APICODE"), "🇬🇧", "Server A", "206694", "726322101786509335")
     serverB = FS22ServerConfig(1, os.getenv("SERVER_B_IP"), os.getenv(
-        "SERVER_B_PORT"), os.getenv("SERVER_B_APICODE"))
+        "SERVER_B_PORT"), os.getenv("SERVER_B_APICODE"), "🇵🇱", "Server B", "FFFF00", "726322101786509335")
     serverC = FS22ServerConfig(2, os.getenv("SERVER_C_IP"), os.getenv(
-        "SERVER_C_PORT"), os.getenv("SERVER_C_APICODE"))
+        "SERVER_C_PORT"), os.getenv("SERVER_C_APICODE"), "🇩🇪", "Server C", "57F288", "726322101786509335")
     serverD = FS22ServerConfig(3, os.getenv("SERVER_D_IP"), os.getenv(
-        "SERVER_D_PORT"), os.getenv("SERVER_D_APICODE"))
+        "SERVER_D_PORT"), os.getenv("SERVER_D_APICODE"), "🇮🇹", "Server D", "9C59B6", "726322101786509335")
 
     serverConfigs = {}
     serverConfigs[0] = serverA
     serverConfigs[1] = serverB
     serverConfigs[2] = serverC
     serverConfigs[3] = serverD
-    commandHandler.update_servers(serverConfigs)
+    commandHandler.restore_servers(serverConfigs)
 
-    testConfig = InfoPanelConfig(os.getenv("SERVER_C_IP"), os.getenv("SERVER_C_PORT"), "tmp", "tmpTitle", "0", "1", "2", "blue")
+    testConfig = InfoPanelConfig(os.getenv("SERVER_C_IP"), os.getenv(
+        "SERVER_C_PORT"), "tmp", "tmpTitle", "0", "1", "2", "blue")
     testHandler = InfoPanelHandler()
     testHandler.add_config(2, testConfig)
 
     for serverId in serverConfigs:
         serverConfig = serverConfigs[serverId]
         tracker = ServerTracker(serverConfig)
-        #tracker.events.initial += initial
+        # tracker.events.initial += initial
         tracker.events.initial += testHandler.on_initial_event
-        #tracker.events.updated += updated
+        # tracker.events.updated += updated
         tracker.events.updated += testHandler.on_updated
-        #tracker.events.playerWentOnline += playerWentOnline
-        #tracker.events.playerWentOffline += playerWentOffline
-        #tracker.events.serverStatusChanged += serverStatusChanged
-        #tracker.events.playerAdminStateChanged += playerAdminStateChanged
+        # tracker.events.playerWentOnline += playerWentOnline
+        # tracker.events.playerWentOffline += playerWentOffline
+        # tracker.events.serverStatusChanged += serverStatusChanged
+        # tracker.events.playerAdminStateChanged += playerAdminStateChanged
         tracker.start_tracker()
 
     print("[main] Finished initialization")
