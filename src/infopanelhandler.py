@@ -31,7 +31,6 @@ class InfoPanelHandler:
         self.configs = {}           # Stores the info panel configurations for each server ID
         # Stores the current data which needs to be published for each server ID
         self.pendingServerData = {}
-        self.currentServerData = {}  # Stores the most recently received data
         self.lock = Lock()
         self.enabled = True
         self.task = None
@@ -68,49 +67,49 @@ class InfoPanelHandler:
             await asyncio.sleep(10)
             with self.lock:
                 configsCopy = copy.deepcopy(self.configs)
+                pendingDataCopy = {}
+                for serverId in self.pendingServerData:
+                    pendingDataCopy[serverId] = copy.deepcopy(self.pendingServerData[serverId])
+                    self.pendingServerData[serverId] = None
             for serverId in configsCopy:
-                if serverId in self.pendingServerData and self.pendingServerData[serverId] is not None:
-                    self.debugPrint("[InfoPanelHandler] Found updated data for server ID %s" % (serverId))
-                    data = self.pendingServerData[serverId]
+                if serverId in pendingDataCopy and pendingDataCopy[serverId] is not None:
+                    self.debugPrint("Found updated data for server ID %s" % (serverId))
+                    data = pendingDataCopy[serverId]
                     config = configsCopy[serverId]
                     
                     # Try finding the message for the embed
                     try:
-                        self.debugPrint("[InfoPanelHandler] Retrieving channel")
+                        self.debugPrint("Retrieving channel")
                         channel = self.discordClient.get_channel(config.channelId)                            
-                        self.debugPrint("[InfoPanelHandler] Fetching embed for channel %s and embed %s" % (config.channelId, config.embedId))
+                        self.debugPrint("Fetching embed for channel %s and embed %s" % (config.channelId, config.embedId))
                         embedMessage = await channel.fetch_message(config.embedId)
                     except:
                         print("[wARN ] [InfoPanelHandler] WARN: Could not find embed for server %s (ID %s): %s" %
                                 (config.title, serverId, traceback.format_exc()))
-                        self.pendingServerData[serverId] = None
                         continue
                     # Build the text to be displayed
                     try:
-                        self.debugPrint("[InfoPanelHandler] Retrieving text")
+                        self.debugPrint("Retrieving text")
                         embedText = self.getText(config, data)
                     except:
                         print("[WARN ] [InfoPanelHandler] Failed creating embed text: %s" % traceback.format_exc())
-                        self.pendingServerData[serverId] = None
                         continue
 
                     # Update the embed
                     try:
-                        self.debugPrint("[InfoPanelHandler] Updating embed")
-                        embed = discord.Embed(title=data.serverName,
+                        self.debugPrint("Updating embed")
+                        embed = discord.Embed(title="%s %s" % (config.icon, data.serverName),
                                             description=embedText,
                                             color=int(config.color, 16))
-                        self.debugPrint("[InfoPanelHandler] Adding last update field")
+                        self.debugPrint("Adding last update field")
                         embed.add_field(name="Last Update",
                                         value="%s" % datetime.datetime.now())
-                        self.debugPrint("[InfoPanelHandler] Updating embed")
+                        self.debugPrint("Updating embed")
                         await embedMessage.edit(embed=embed)
                     except:
                         print("[WARN ] [InfoPanelHandler] Could not update embed for server %s (ID %s): %s"
                         % (config.title, serverId, traceback.format_exc()))
 
-                    # Don't process again until there is a new update
-                    self.pendingServerData[serverId] = None
         print("[INFO ] [InfoPanelHandler] InfoPanelHandler was aborted")
         self.task = None
 
