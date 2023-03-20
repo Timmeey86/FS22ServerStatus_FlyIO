@@ -1,15 +1,20 @@
 from threading import Lock
 import asyncio
+import discord
+import datetime
+import traceback
+import copy
+
 
 class InfoPanelConfig:
     """This class stores the fixed information about an info panel which doesn't change for a server usually."""
 
-    def __init__(self, ip, port, flag, title, guildId, channelId, embedId, serverColor):
+    def __init__(self, ip, port, icon, title, guildId, channelId, embedId, color):
         self.ip = ip
         self.port = port
-        self.flag = flag
+        self.icon = icon
         self.title = title
-        self.serverColor = serverColor
+        self.color = color
         self.guildId = guildId
         self.channelId = channelId
         self.embedId = embedId
@@ -18,7 +23,7 @@ class InfoPanelConfig:
 class InfoPanelHandler:
     """This class is responsible for updating the info panel in the configured discord channel"""
 
-    def __init__(self):
+    def __init__(self, discordClient):
         self.configs = {}           # Stores the info panel configurations for each server ID
         # Stores the current data which needs to be published for each server ID
         self.pendingServerData = {}
@@ -26,11 +31,19 @@ class InfoPanelHandler:
         self.lock = Lock()
         self.enabled = True
         self.task = None
+        self.discordClient = discordClient
 
     def add_config(self, serverId, discordInfoPanelConfig):
         with self.lock:
             self.configs[serverId] = discordInfoPanelConfig
             self.pendingServerData[serverId] = None
+
+    async def create_embed(self, serverId, interaction, ip, port, icon, title, color):
+        embed = discord.Embed(title="Pending...", color=int(color, 16))
+        message = await interaction.channel.send(embed=embed)
+        panelInfoConfig = InfoPanelConfig(
+            ip, port, icon, title, interaction.guild_id, interaction.channel_id, message.id, color)
+        self.add_config(serverId, panelInfoConfig)
 
     ### Threading ###
 
@@ -48,16 +61,51 @@ class InfoPanelHandler:
     async def update_panels(self):
         while self.enabled == True:
             await asyncio.sleep(10)
-            print("[InfoPanelHandler] Checking for panel update")
             with self.lock:
-                for serverId in self.configs:
-                    if serverId in self.pendingServerData and self.pendingServerData[serverId] is not None:
-                        data = self.pendingServerData[serverId]
-                        config = self.configs[serverId]
-                        print("[InfoPanelHandler] Updating server %s (%s) with server name %s" %
-                              (serverId, config.title, data.serverName))
-                        # Don't process again until there is a new update
+                configsCopy = copy.deepcopy(self.configs)
+            for serverId in configsCopy:
+                if serverId in self.pendingServerData and self.pendingServerData[serverId] is not None:
+                    print("[InfoPanelHandler] Found updated data for server ID %s" % (serverId))
+                    data = self.pendingServerData[serverId]
+                    config = configsCopy[serverId]
+                    
+                    # Try finding the message for the embed
+                    try:
+                        print("[InfoPanelHandler] Retrieving channel")
+                        channel = self.discordClient.get_channel(config.channelId)                            
+                        print("[InfoPanelHandler] Fetching embed for channel %s and embed %s" % (config.channelId, config.embedId))
+                        embedMessage = await channel.fetch_message(config.embedId)
+                    except:
+                        print("[InfoPanelHandler] WARN: Could not find embed for server %s (ID %s): %s" %
+                                (config.title, serverId, traceback.format_exc()))
                         self.pendingServerData[serverId] = None
+                        continue
+                    # Build the text to be displayed
+                    try:
+                        print("[InfoPanelHandler] Retrieving text")
+                        embedText = self.getText(config, data)
+                    except:
+                        print("[InfoPanelHandler] Failed creating embed text: %s" % traceback.format_exc())
+                        self.pendingServerData[serverId] = None
+                        continue
+
+                    # Update the embed
+                    try:
+                        print("[InfoPanelHandler] Updating embed")
+                        embed = discord.Embed(title=data.serverName,
+                                            description=embedText,
+                                            color=int(config.color, 16))
+                        print("[InfoPanelHandler] Adding last update field")
+                        embed.add_field(name="Last Update",
+                                        value="%s" % datetime.datetime.now())
+                        print("[InfoPanelHandler] Updating embed")
+                        await embedMessage.edit(embed=embed)
+                    except:
+                        print("[InfoPanelHandler] WARN: Could not update embed for server %s (ID %s): %s"
+                        % (config.title, serverId, traceback.format_exc()))
+
+                    # Don't process again until there is a new update
+                    self.pendingServerData[serverId] = None
         print("[InfoPanelHandler] InfoPanelHandler was aborted")
         self.task = None
 
@@ -75,19 +123,21 @@ class InfoPanelHandler:
 
     def getText(self, serverConfig, serverData):
         message = \
-            "**Map: **" + serverData.map + "\r\n" + \
-            "**Status: **" + serverData.status + "\r\n" + \
+            "**Map: **" + serverData.mapName + "\r\n" + \
+            "**Status: **" + str(serverData.status.value) + "\r\n" + \
             "**Server Time: **" + self.get_server_time(serverData) + "\r\n" + \
             "**Mods Link: **" + self.get_mods_link(serverConfig) + "\r\n" + \
-            "**Players Online: **" + str(serverData.online_player_count()) + "/" + serverData.maxPlayers + "\r\n" + \
+            "**Players Online: **" + str(len(serverData.onlinePlayers)) + "/" + serverData.maxPlayers + "\r\n" + \
             "**Players: **"
 
-        if not serverData.players:
-            replyMessage = replyMessage + "(none)"
+        if not serverData.onlinePlayers:
+            message = message + "(none)"
         else:
-            for playerName in serverData.players:
-                replyMessage = replyMessage + "\r\n - %s (%s min)" % (
-                    playerName, serverData.players[playerName].onlineTime)
+            for playerName in serverData.onlinePlayers:
+                message = message + "\r\n - %s (%s min)" % (
+                    playerName, serverData.onlinePlayers[playerName].onlineTime)
+
+        return message
 
     def get_server_time(self, serverData):
         totalsec, _ = divmod(int(serverData.dayTime), 1000)

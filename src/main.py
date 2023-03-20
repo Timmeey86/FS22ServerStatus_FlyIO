@@ -18,7 +18,11 @@ intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
-commandHandler = CommandHandler()
+
+
+# build the main object tree
+infoPanelHandler = InfoPanelHandler(client)
+commandHandler = CommandHandler(infoPanelHandler)
 
 
 @tree.command(name="fssb_add_embed",
@@ -26,6 +30,7 @@ commandHandler = CommandHandler()
 @app_commands.describe(
     id="The ID of the server")
 async def fssb_add_embed(interaction, id: int):
+    print("Received fssb_add_embed command for id %s" % id)
     await commandHandler.add_embed(interaction, id)
 
 
@@ -126,8 +131,11 @@ async def on_ready():
     # Enable slash commands like /fss_add_embed
     print("[main] Discord client is ready")
     print("[main] Waiting for tree sync")
-    await tree.sync()
-    print("[main] Tree is now synched")
+    try:
+        await tree.sync()
+        print("[main] Tree is now synched")
+    except:
+        print("[main] Failed waiting for tree sync: %s" % traceback.format_exc())
 
     if os.path.exists("/data"):
         print("[main] /data exists")
@@ -150,18 +158,13 @@ async def on_ready():
     serverConfigs[3] = serverD
     commandHandler.restore_servers(serverConfigs)
 
-    testConfig = InfoPanelConfig(os.getenv("SERVER_C_IP"), os.getenv(
-        "SERVER_C_PORT"), "tmp", "tmpTitle", "0", "1", "2", "blue")
-    testHandler = InfoPanelHandler()
-    testHandler.add_config(2, testConfig)
-
     for serverId in serverConfigs:
         serverConfig = serverConfigs[serverId]
         tracker = ServerTracker(serverConfig)
         # tracker.events.initial += initial
-        tracker.events.initial += testHandler.on_initial_event
+        tracker.events.initial += infoPanelHandler.on_initial_event
         # tracker.events.updated += updated
-        tracker.events.updated += testHandler.on_updated
+        tracker.events.updated += infoPanelHandler.on_updated
         # tracker.events.playerWentOnline += playerWentOnline
         # tracker.events.playerWentOffline += playerWentOffline
         # tracker.events.serverStatusChanged += serverStatusChanged
@@ -169,14 +172,14 @@ async def on_ready():
         tracker.start_tracker()
 
     print("[main] Finished initialization")
-    testHandler.start()
+    infoPanelHandler.start()
 
     while (not stopped):
-        print("[main] Sleeping 60s", flush=True)
-        await asyncio.sleep(60)
+        print("[main] Sleeping 5s", flush=True)
+        await asyncio.sleep(5)
 
     print("[main] Waiting for threads to end")
-    testHandler.stop()
+    infoPanelHandler.stop()
     print("[main] Done")
 
 

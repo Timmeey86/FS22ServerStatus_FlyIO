@@ -26,6 +26,7 @@ class OnlineState(Enum):
     Offline = 1,
     Online = 2
 
+
 class FS22PlayerStatus:
     """
     Contains information about the current status of a player
@@ -105,7 +106,7 @@ class FS22ServerAccess:
                     # Skip empty slots
                     if playerElement is None or playerElement["@isUsed"] == "false":
                         continue
-                    
+
                     playerStatus = FS22PlayerStatus.from_xml(playerElement)
                     statusData.onlinePlayers[playerStatus.playerName] = playerStatus
 

@@ -49,7 +49,7 @@ class ServerTracker:
                     print("[ServerTracker] No status")
             except Exception:
                 print("[ServerTracker] Error: %s" % traceback.format_exc())
-            await asyncio.sleep(60)
+            await asyncio.sleep(5)
 
         print("[ServerTracker] Server tracking has stopped")
 
