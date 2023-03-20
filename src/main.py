@@ -1,7 +1,8 @@
 import asyncio
 from fs22server import FS22ServerConfig
 from servertracker import ServerTracker
-from infopanelhandler import InfoPanelConfig, InfoPanelHandler
+from infopanelhandler import InfoPanelHandler
+from playerstatushandler import PlayerStatusHandler
 from commandhandler import CommandHandler
 from dotenv import load_dotenv
 import discord
@@ -22,7 +23,8 @@ tree = app_commands.CommandTree(client)
 
 # build the main object tree
 infoPanelHandler = InfoPanelHandler(client)
-commandHandler = CommandHandler(infoPanelHandler)
+playerStatusHandler = PlayerStatusHandler(client)
+commandHandler = CommandHandler(infoPanelHandler, playerStatusHandler)
 
 
 @tree.command(name="fssb_add_embed",
@@ -173,6 +175,7 @@ async def on_ready():
 
     print("[main] Finished initialization")
     infoPanelHandler.start()
+    playerStatusHandler.start()
 
     while (not stopped):
         print("[main] Sleeping 5s", flush=True)
@@ -180,6 +183,7 @@ async def on_ready():
 
     print("[main] Waiting for threads to end")
     infoPanelHandler.stop()
+    playerStatusHandler.stop()
     print("[main] Done")
 
 

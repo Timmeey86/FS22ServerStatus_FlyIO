@@ -9,13 +9,12 @@ import copy
 class InfoPanelConfig:
     """This class stores the fixed information about an info panel which doesn't change for a server usually."""
 
-    def __init__(self, ip, port, icon, title, guildId, channelId, embedId, color):
+    def __init__(self, ip, port, icon, title, channelId, embedId, color):
         self.ip = ip
         self.port = port
         self.icon = icon
         self.title = title
         self.color = color
-        self.guildId = guildId
         self.channelId = channelId
         self.embedId = embedId
 
@@ -46,7 +45,7 @@ class InfoPanelHandler:
         embed = discord.Embed(title="Pending...", color=int(color, 16))
         message = await interaction.channel.send(embed=embed)
         panelInfoConfig = InfoPanelConfig(
-            ip, port, icon, title, interaction.guild_id, interaction.channel_id, message.id, color)
+            ip, port, icon, title, interaction.channel_id, message.id, color)
         self.add_config(serverId, panelInfoConfig)
 
     ### Threading ###
