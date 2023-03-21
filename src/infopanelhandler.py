@@ -109,6 +109,9 @@ class InfoPanelHandler:
                         print("[WARN ] [InfoPanelHandler] Could not update embed for server %s (ID %s): %s"
                         % (config.title, serverId, traceback.format_exc()))
 
+                    # don't spam discord
+                    await asyncio.sleep(1)
+
         print("[INFO ] [InfoPanelHandler] InfoPanelHandler was aborted")
         self.task = None
 

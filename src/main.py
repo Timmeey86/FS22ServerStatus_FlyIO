@@ -167,9 +167,9 @@ async def on_ready():
         tracker.events.initial += infoPanelHandler.on_initial_event
         # tracker.events.updated += updated
         tracker.events.updated += infoPanelHandler.on_updated
-        # tracker.events.playerWentOnline += playerWentOnline
-        # tracker.events.playerWentOffline += playerWentOffline
-        # tracker.events.serverStatusChanged += serverStatusChanged
+        tracker.events.playerWentOnline += playerStatusHandler.on_player_online
+        tracker.events.playerWentOffline += playerStatusHandler.on_player_offline
+        tracker.events.serverStatusChanged += playerStatusHandler.on_player_admin
         # tracker.events.playerAdminStateChanged += playerAdminStateChanged
         tracker.start_tracker()
 
@@ -178,8 +178,8 @@ async def on_ready():
     playerStatusHandler.start()
 
     while (not stopped):
-        print("[main] Sleeping 5s", flush=True)
-        await asyncio.sleep(5)
+        print("[main] Sleeping 60s", flush=True)
+        await asyncio.sleep(60)
 
     print("[main] Waiting for threads to end")
     infoPanelHandler.stop()

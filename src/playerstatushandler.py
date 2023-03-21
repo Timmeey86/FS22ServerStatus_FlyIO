@@ -127,17 +127,20 @@ class PlayerStatusHandler:
 
     ### Event listeners ###
     
-    def on_player_online(serverId, playerName):
+    def on_player_online(self, serverId, playerName):
         with self.lock:
             if serverId in self.pendingData:
+                self.debugPrint("Player %s signed onto %s" % (playerName, serverId))
                 self.pendingData[serverId].append(PlayerStatusMessage(playerName, isOnlineMessage=true))
+            else:
+                self.debugPrint("Skipping logged on player for server %s" % serverId)
 
-    def on_player_offline(serverId, playerName):
+    def on_player_offline(self, serverId, playerName):
          with self.lock:
             if serverId in self.pendingData:
                 self.pendingData[serverId].append(PlayerStatusMessage(playerName, isOfflineMessage==true))
 
-    def on_player_admin(serverId, playerName):
+    def on_player_admin(self, serverId, playerName):
         with self.lock:
             if serverId in self.pendingData:
                 self.pendingData[serverId].append(PlayerStatusMessage(playerName, isAdminMessage==true))
