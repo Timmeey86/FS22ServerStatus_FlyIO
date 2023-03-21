@@ -2,7 +2,6 @@ from enum import Enum
 import urllib3
 import xmltodict
 
-
 class FS22ServerConfig:
     """Contains data required for accessing an FS22 server"""
 

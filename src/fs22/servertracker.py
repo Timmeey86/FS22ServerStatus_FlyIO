@@ -1,5 +1,5 @@
 from events import Events
-from fs22server import FS22ServerAccess, FS22ServerStatus, FS22ServerConfig, OnlineState
+from fs22.fs22server import FS22ServerAccess, FS22ServerStatus, FS22ServerConfig, OnlineState
 from queue import Queue
 import asyncio
 import traceback
@@ -49,7 +49,7 @@ class ServerTracker:
                     print("[ServerTracker] No status")
             except Exception:
                 print("[ServerTracker] Error: %s" % traceback.format_exc())
-            await asyncio.sleep(60)
+            await asyncio.sleep(5)
 
         print("[ServerTracker] Server tracking has stopped")
 

@@ -63,7 +63,7 @@ class InfoPanelHandler:
 
     async def update_panels(self):
         while self.enabled == True:
-            await asyncio.sleep(10)
+            await asyncio.sleep(60)
             with self.lock:
                 configsCopy = copy.deepcopy(self.configs)
                 pendingDataCopy = {}

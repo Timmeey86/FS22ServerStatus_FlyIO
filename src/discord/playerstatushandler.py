@@ -5,7 +5,7 @@ import traceback
 import copy
 
 class PlayerStatusConfig:
-    """This class sores the fixed information about a player status reporting channel"""
+    """This class stores the fixed information about a player status reporting channel"""
 
     def __init__(self, title, icon, color, channelId):
         self.title = title
@@ -40,7 +40,7 @@ class PlayerStatusHandler:
         self.enabled = True
         self.task = None
         self.discordClient = discordClient
-        self.debug = True
+        self.debug = False
     
     def add_config(self, serverId, playerStatusConfig):
         with self.lock:
@@ -68,7 +68,7 @@ class PlayerStatusHandler:
     async def post_pending_messages(self):
         while self.enabled == True:
             # Give discord a chance to relax
-            await asyncio.sleep(10)
+            await asyncio.sleep(60)
             self.debugPrint("Waking up")
             # Copy configs and pending data (keep the lock short)
             with self.lock:
@@ -88,7 +88,7 @@ class PlayerStatusHandler:
                     self.debugPrint("Trying to find channel")
 
                     try:
-                        channel = client.get_channel(config.channelId)
+                        channel = self.discordClient.get_channel(config.channelId)
                     except:
                         # This could e.g. happen in case of Cloudflare rate limiting
                         print("[WARN ] [PlayerStatusHandler] Failed to retrieve member log channel ID: %s" % traceback.format_exc())
@@ -111,10 +111,7 @@ class PlayerStatusHandler:
 
                         try:
                             message = "%s **%s** is %s on %s **%s**" % (indicator, entry.player, statusPart, config.icon, config.title)
-                            embed = discord.Embed(
-                                description="🎩 **%s** is now an admin on **%s**" %
-                                (playerStatus.playerName, serverData.name),
-                                color=color)
+                            embed = discord.Embed(description=message, color=int(overrideColor,16))
                             await channel.send(embed=embed)
                         except:
                             print("[WARN ] [PlayerStatusHandler] Failed creating a player status embed: %s" % traceback.format_exc())
@@ -130,17 +127,14 @@ class PlayerStatusHandler:
     def on_player_online(self, serverId, playerName):
         with self.lock:
             if serverId in self.pendingData:
-                self.debugPrint("Player %s signed onto %s" % (playerName, serverId))
-                self.pendingData[serverId].append(PlayerStatusMessage(playerName, isOnlineMessage=true))
-            else:
-                self.debugPrint("Skipping logged on player for server %s" % serverId)
-
+                self.pendingData[serverId].append(PlayerStatusMessage(playerName, isOnlineMessage=True))
+            
     def on_player_offline(self, serverId, playerName):
          with self.lock:
             if serverId in self.pendingData:
-                self.pendingData[serverId].append(PlayerStatusMessage(playerName, isOfflineMessage==true))
+                self.pendingData[serverId].append(PlayerStatusMessage(playerName, isOfflineMessage=True))
 
     def on_player_admin(self, serverId, playerName):
         with self.lock:
             if serverId in self.pendingData:
-                self.pendingData[serverId].append(PlayerStatusMessage(playerName, isAdminMessage==true))
+                self.pendingData[serverId].append(PlayerStatusMessage(playerName, isAdminMessage=True))

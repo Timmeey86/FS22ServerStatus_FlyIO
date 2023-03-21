@@ -1,9 +1,10 @@
 import asyncio
-from fs22server import FS22ServerConfig
-from servertracker import ServerTracker
-from infopanelhandler import InfoPanelHandler
-from playerstatushandler import PlayerStatusHandler
-from commandhandler import CommandHandler
+from fs22.fs22server import FS22ServerConfig
+from fs22.servertracker import ServerTracker
+from discord.infopanelhandler import InfoPanelHandler
+from discord.playerstatushandler import PlayerStatusHandler
+from discord.serverstatushandler import ServerStatusHandler
+from discord.commandhandler import CommandHandler
 from dotenv import load_dotenv
 import discord
 from discord import app_commands
@@ -24,7 +25,8 @@ tree = app_commands.CommandTree(client)
 # build the main object tree
 infoPanelHandler = InfoPanelHandler(client)
 playerStatusHandler = PlayerStatusHandler(client)
-commandHandler = CommandHandler(infoPanelHandler, playerStatusHandler)
+serverStatusHandler = ServerStatusHandler(client)
+commandHandler = CommandHandler(infoPanelHandler, playerStatusHandler, serverStatusHandler)
 
 
 @tree.command(name="fssb_add_embed",
@@ -98,33 +100,6 @@ async def fssb_send_message(interaction, message: str):
         ephemeral=True,
         delete_after=1)
 
-"""
-def initial(serverId, serverData):
-    print("[main] Received initial event for server %s" % (serverId))
-
-
-def updated(serverId, serverData):
-    # print("[main]Received update event for server %s" % (serverId, serverData.__dict__))
-    pass
-
-
-def playerWentOnline(serverId, playerName):
-    print("[main] Player %s joined server %s" % (playerName, serverId))
-
-
-def playerWentOffline(serverId, playerName):
-    print("[main] Player %s logged out from server %s" % (playerName, serverId))
-
-
-def serverStatusChanged(serverId, serverData):
-    print("[main] Server %s is now %s" % (serverId, serverData.status.name))
-
-
-def playerAdminStateChanged(serverId, playerName):
-    print("[main] Player %s is now an admin" % (playerName))
-"""
-
-
 @client.event
 async def on_ready():
     """
@@ -163,19 +138,19 @@ async def on_ready():
     for serverId in serverConfigs:
         serverConfig = serverConfigs[serverId]
         tracker = ServerTracker(serverConfig)
-        # tracker.events.initial += initial
         tracker.events.initial += infoPanelHandler.on_initial_event
-        # tracker.events.updated += updated
         tracker.events.updated += infoPanelHandler.on_updated
         tracker.events.playerWentOnline += playerStatusHandler.on_player_online
         tracker.events.playerWentOffline += playerStatusHandler.on_player_offline
-        tracker.events.serverStatusChanged += playerStatusHandler.on_player_admin
-        # tracker.events.playerAdminStateChanged += playerAdminStateChanged
+        tracker.events.playerAdminStateChanged += playerStatusHandler.on_player_admin
+        tracker.events.serverStatusChanged += serverStatusHandler.on_server_status_changed
+        #tracker.events.playerCountChanged +=
         tracker.start_tracker()
 
     print("[main] Finished initialization")
     infoPanelHandler.start()
     playerStatusHandler.start()
+    serverStatusHandler.start()
 
     while (not stopped):
         print("[main] Sleeping 60s", flush=True)
@@ -184,6 +159,7 @@ async def on_ready():
     print("[main] Waiting for threads to end")
     infoPanelHandler.stop()
     playerStatusHandler.stop()
+    serverStatusHandler.stop()
     print("[main] Done")
 
 

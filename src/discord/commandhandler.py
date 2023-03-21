@@ -1,17 +1,19 @@
 from threading import Lock
-from fs22server import FS22ServerConfig
-from infopanelhandler import InfoPanelHandler
-from playerstatushandler import PlayerStatusHandler
+from fs22.fs22server import FS22ServerConfig
+from discord.infopanelhandler import InfoPanelHandler
+from discord.playerstatushandler import PlayerStatusHandler
+from discord.serverstatushandler import ServerStatusHandler
 import traceback
 
 class CommandHandler:
 
-    def __init__(self, infoPanelHandler, playerStatusHandler):
+    def __init__(self, infoPanelHandler, playerStatusHandler, serverStatusHandler):
         self.lock = Lock()
         self.serverConfigs = {}
         self.nextServerId = 0
         self.infoPanelHandler = infoPanelHandler
         self.playerStatusHandler = playerStatusHandler
+        self.serverStatusHandler = serverStatusHandler
 
     def restore_servers(self, serverConfigs):
         with self.lock:
@@ -72,7 +74,8 @@ class CommandHandler:
     async def add_embed(self, interaction, id):
         if not await self.check_parameters(interaction, id):
             return
-        config = self.serverConfigs[id]
+        with self.lock:
+            config = self.serverConfigs[id]
         try:
             await self.infoPanelHandler.create_embed(id, interaction, config.ip, config.port, config.icon, config.title, config.color)
             await interaction.response.send_message(content="Panel successfully created", ephemeral=True, delete_after=10)
@@ -83,7 +86,8 @@ class CommandHandler:
     async def set_member_channel(self, interaction, id):
         if not await self.check_parameters(interaction, id):
             return
-        config = self.serverConfigs[id]
+        with self.lock:
+            config = self.serverConfigs[id]
         try:
             await self.playerStatusHandler.track_server(id, interaction, config.title, config.icon, config.color) 
             await interaction.response.send_message(content="Player status successfully tracked", ephemeral=True, delete_after=10)
@@ -94,8 +98,15 @@ class CommandHandler:
     async def set_server_channel(self, interaction, id):
         if not await self.check_parameters(interaction, id):
             return
-        pass
-
+        with self.lock:
+            config = self.serverConfigs[id]
+        try:
+            await self.serverStatusHandler.track_server(id, interaction, config.title, config.icon, config.color)
+            await interaction.response.send_message(content="Server status successfully tracked", ephemeral=True, delete_after=10)
+        except:
+            await interaction.response.send_message(content="Failed tracking server status")
+            print(traceback.format_exc())
+    
     async def set_status_channel(self, interaction, id, shortName):
         if not await self.check_parameters(interaction, id):
             return
