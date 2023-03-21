@@ -21,10 +21,10 @@ class FS22ServerConfig:
         return "http://%s:%s/feed/dedicated-server-stats.xml?code=%s" % (self.ip, self.port, self.apiCode)
 
 
-class OnlineState(Enum):
-    Unknown = 0,
-    Offline = 1,
-    Online = 2
+class OnlineState(str, Enum):
+    Unknown = "unknown",
+    Offline = "offline",
+    Online = "online"
 
 
 class FS22PlayerStatus:

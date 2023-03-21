@@ -130,7 +130,7 @@ class InfoPanelHandler:
     def getText(self, serverConfig, serverData):
         message = \
             "**Map: **" + serverData.mapName + "\r\n" + \
-            "**Status: **" + str(serverData.status.value) + "\r\n" + \
+            "**Status: **" + serverData.status + "\r\n" + \
             "**Server Time: **" + self.get_server_time(serverData) + "\r\n" + \
             "**Mods Link: **" + self.get_mods_link(serverConfig) + "\r\n" + \
             "**Players Online: **" + str(len(serverData.onlinePlayers)) + "/" + serverData.maxPlayers + "\r\n" + \
