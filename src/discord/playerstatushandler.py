@@ -7,11 +7,11 @@ import copy
 class PlayerStatusConfig:
     """This class stores the fixed information about a player status reporting channel"""
 
-    def __init__(self, title, icon, color, channelId):
+    def __init__(self, title, icon, color, channel):
         self.title = title
         self.icon = icon
         self.color = color
-        self.channelId = channelId
+        self.channel = channel
 
 class PlayerStatusMessage:
     """Stores a message to be published in the player status message channel"""
@@ -40,7 +40,7 @@ class PlayerStatusHandler:
         self.enabled = True
         self.task = None
         self.discordClient = discordClient
-        self.debug = False
+        self.debug = True
     
     def add_config(self, serverId, playerStatusConfig):
         with self.lock:
@@ -49,7 +49,7 @@ class PlayerStatusHandler:
 
     async def track_server(self, serverId, interaction, title, icon, color):
         # TOOD: Status message about the server being tracked
-        playerStatusConfig = PlayerStatusConfig(title, icon, color, interaction.channel_id)
+        playerStatusConfig = PlayerStatusConfig(title, icon, color, interaction.channel)
         self.add_config(serverId, playerStatusConfig)
 
     ### Threading ###
@@ -72,29 +72,17 @@ class PlayerStatusHandler:
             self.debugPrint("Waking up")
             # Copy configs and pending data (keep the lock short)
             with self.lock:
-                configsCopy = copy.deepcopy(self.configs)
+                configsCopy = {serverId: self.configs[serverId] for serverId in self.configs}
                 pendingDataCopy = {}
                 for serverId in self.pendingData:
                     pendingDataCopy[serverId] = copy.deepcopy(self.pendingData[serverId])
                     self.pendingData[serverId] = []
             self.debugPrint("Copied data")
             # Process copied data now
-            for serverId in configsCopy:
+            for serverId, config in configsCopy.items():
                 if len(pendingDataCopy[serverId]) > 0:
                     self.debugPrint(f"Processing messages for server ID {serverId}")
                     data = pendingDataCopy[serverId]
-                    config = configsCopy[serverId]
-
-                    self.debugPrint("Trying to find channel")
-
-                    try:
-                        channel = self.discordClient.get_channel(config.channelId)
-                    except Exception:
-                        # This could e.g. happen in case of Cloudflare rate limiting
-                        print(
-                            f"[WARN ] [PlayerStatusHandler] Failed to retrieve member log channel ID: {traceback.format_exc()}"
-                        )
-                        continue
 
                     # Create a new embed for each message
                     for entry in data:
@@ -105,7 +93,7 @@ class PlayerStatusHandler:
                         elif entry.isOfflineMessage:
                             overrideColor = "992E22"
                             indicator = "👋"
-                            statusPart = "now offline"
+                            statusPart = "no longer"
                         elif entry.isAdminMessage:
                             overrideColor = config.color
                             indicator = "🎩"
@@ -114,7 +102,7 @@ class PlayerStatusHandler:
                         try:
                             message = f"{indicator} **{entry.player}** is {statusPart} on {config.icon} **{config.title}**"
                             embed = discord.Embed(description=message, color=int(overrideColor,16))
-                            await channel.send(embed=embed)
+                            await config.channel.send(embed=embed)
                         except Exception:
                             print(f"[WARN ] [PlayerStatusHandler] Failed creating a player status embed: {traceback.format_exc()}")
 

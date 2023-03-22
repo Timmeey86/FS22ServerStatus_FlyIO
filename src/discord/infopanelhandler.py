@@ -9,14 +9,14 @@ import copy
 class InfoPanelConfig:
     """This class stores the fixed information about an info panel which doesn't change for a server usually."""
 
-    def __init__(self, ip, port, icon, title, channelId, embedId, color):
+    def __init__(self, ip, port, icon, title, channel, embed, color):
         self.ip = ip
         self.port = port
         self.icon = icon
         self.title = title
         self.color = color
-        self.channelId = channelId
-        self.embedId = embedId
+        self.channel = channel
+        self.embed = embed
 
 
 class InfoPanelHandler:
@@ -34,7 +34,7 @@ class InfoPanelHandler:
         self.enabled = True
         self.task = None
         self.discordClient = discordClient
-        self.debug = False
+        self.debug = True
 
     def add_config(self, serverId, discordInfoPanelConfig):
         with self.lock:
@@ -45,7 +45,7 @@ class InfoPanelHandler:
         embed = discord.Embed(title="Pending...", color=int(color, 16))
         message = await interaction.channel.send(embed=embed)
         panelInfoConfig = InfoPanelConfig(
-            ip, port, icon, title, interaction.channel_id, message.id, color)
+            ip, port, icon, title, interaction.channel, message, color)
         self.add_config(serverId, panelInfoConfig)
 
     ### Threading ###
@@ -62,33 +62,21 @@ class InfoPanelHandler:
     ### Discord update ###
 
     async def update_panels(self):
+        self.debugPrint("Processing has started")
         while self.enabled == True:
             await asyncio.sleep(60)
+            self.debugPrint("Waking up")
             with self.lock:
-                configsCopy = copy.deepcopy(self.configs)
+                configsCopy = {serverId: self.configs[serverId] for serverId in self.configs}
                 pendingDataCopy = {}
                 for serverId in self.pendingServerData:
                     pendingDataCopy[serverId] = copy.deepcopy(self.pendingServerData[serverId])
                     self.pendingServerData[serverId] = None
-            for serverId in configsCopy:
+            self.debugPrint(f"Copied data: {len(configsCopy)} configs with {len(pendingDataCopy)} pending entries")
+            for serverId, config in configsCopy.items():
                 if serverId in pendingDataCopy and pendingDataCopy[serverId] is not None:
                     self.debugPrint(f"Found updated data for server ID {serverId}")
                     data = pendingDataCopy[serverId]
-                    config = configsCopy[serverId]
-
-                    # Try finding the message for the embed
-                    try:
-                        self.debugPrint("Retrieving channel")
-                        channel = self.discordClient.get_channel(config.channelId)
-                        self.debugPrint(
-                            f"Fetching embed for channel {config.channelId} and embed {config.embedId}"
-                        )
-                        embedMessage = await channel.fetch_message(config.embedId)
-                    except Exception:
-                        print(
-                            f"[wARN ] [InfoPanelHandler] WARN: Could not find embed for server {config.title} (ID {serverId}): {traceback.format_exc()}"
-                        )
-                        continue
                     # Build the text to be displayed
                     try:
                         self.debugPrint("Retrieving text")
@@ -110,7 +98,7 @@ class InfoPanelHandler:
                         self.debugPrint("Adding last update field")
                         embed.add_field(name="Last Update", value=f"{datetime.datetime.now()}")
                         self.debugPrint("Updating embed")
-                        await embedMessage.edit(embed=embed)
+                        await config.embed.edit(embed=embed)
                     except Exception:
                         print(
                             f"[WARN ] [InfoPanelHandler] Could not update embed for server {config.title} (ID {serverId}): {traceback.format_exc()}"
@@ -132,6 +120,8 @@ class InfoPanelHandler:
         """Queues the current server data for being sent to discord on each update.
         The discord embed will be updated at fixed time intervals."""
         with self.lock:
+            if serverId not in self.pendingServerData:
+                self.debugPrint(f"Adding pending data for server ID {serverId}")
             self.pendingServerData[serverId] = serverData
 
     def getText(self, serverConfig, serverData):

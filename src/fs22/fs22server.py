@@ -2,6 +2,7 @@ from enum import Enum
 import urllib3
 import xmltodict
 
+
 class FS22ServerConfig:
     """Contains data required for accessing an FS22 server"""
 
@@ -17,7 +18,7 @@ class FS22ServerConfig:
 
     def status_xml_url(self):
         """Retrieves the URL to the XML file which provides status information about the server"""
-        return "http://%s:%s/feed/dedicated-server-stats.xml?code=%s" % (self.ip, self.port, self.apiCode)
+        return f"http://{self.ip}:{self.port}/feed/dedicated-server-stats.xml?code={self.apiCode}"
 
 
 class OnlineState(str, Enum):
@@ -96,17 +97,19 @@ class FS22ServerAccess:
                 # If the host is online, but the game server is offline, we get an empty XML
                 statusData.status = OnlineState.Offline
             else:
-                statusData.status = OnlineState.Online
-                statusData.serverName = serverXmlElement["@name"]
-                statusData.mapName = serverXmlElement["@mapName"]
-                statusData.maxPlayers = serverXmlElement["Slots"]["@capacity"]
-                statusData.dayTime = serverXmlElement["@dayTime"]
-                for playerElement in serverXmlElement["Slots"]["Player"]:
-                    # Skip empty slots
-                    if playerElement is None or playerElement["@isUsed"] == "false":
-                        continue
-
-                    playerStatus = FS22PlayerStatus.from_xml(playerElement)
-                    statusData.onlinePlayers[playerStatus.playerName] = playerStatus
-
+                self.update_status_data(statusData, serverXmlElement)
         return statusData
+
+    def update_status_data(self, statusData, serverXmlElement):
+        statusData.status = OnlineState.Online
+        statusData.serverName = serverXmlElement["@name"]
+        statusData.mapName = serverXmlElement["@mapName"]
+        statusData.maxPlayers = serverXmlElement["Slots"]["@capacity"]
+        statusData.dayTime = serverXmlElement["@dayTime"]
+        for playerElement in serverXmlElement["Slots"]["Player"]:
+            # Skip empty slots
+            if playerElement is None or playerElement["@isUsed"] == "false":
+                continue
+
+            playerStatus = FS22PlayerStatus.from_xml(playerElement)
+            statusData.onlinePlayers[playerStatus.playerName] = playerStatus
