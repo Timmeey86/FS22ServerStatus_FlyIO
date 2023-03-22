@@ -8,11 +8,11 @@ import copy
 class ServerStatusConfig:
     """This class stores the fixed information about a server status reporting channel"""
 
-    def __init__(self, title, icon, color, channelId):
+    def __init__(self, title, icon, color, channel):
         self.title = title
         self.icon = icon
         self.color = color
-        self.channelId = channelId
+        self.channel = channel
 
 class ServerStatusMessage:
     """Stores a message to be published in the server status message channel"""
@@ -44,7 +44,7 @@ class ServerStatusHandler:
 
     async def track_server(self, serverId, interaction, title, icon, color):
         # TOOD: Status message about the server being tracked
-        serverStatusConfig = ServerStatusConfig(title, icon, color, interaction.channel_id)
+        serverStatusConfig = ServerStatusConfig(title, icon, color, interaction.channel)
         self.add_config(serverId, serverStatusConfig)
         
     ### Threading ###
@@ -67,29 +67,17 @@ class ServerStatusHandler:
             self.debugPrint("Waking up")
             # Copy configs and pending data (keep the lock short)
             with self.lock:
-                configsCopy = copy.deepcopy(self.configs)
+                configsCopy = {serverId: self.configs[serverId] for serverId in self.configs}
                 pendingDataCopy = {}
                 for serverId in self.pendingData:
                     pendingDataCopy[serverId] = copy.deepcopy(self.pendingData[serverId])
                     self.pendingData[serverId] = []
             self.debugPrint("Copied data")
             # Process copied data now
-            for serverId in configsCopy:
+            for serverId, config in configsCopy.items():
                 if len(pendingDataCopy[serverId]) > 0:
                     self.debugPrint(f"Processing messages for server ID {serverId}")
                     data = pendingDataCopy[serverId]
-                    config = configsCopy[serverId]
-
-                    self.debugPrint("Trying to find channel")
-
-                    try:
-                        channel = self.discordClient.get_channel(config.channelId)
-                    except Exception:
-                        # This could e.g. happen in case of Cloudflare rate limiting
-                        print(
-                            f"[WARN ] [ServerStatusHandler] Failed to retrieve server log channel ID: {traceback.format_exc()}"
-                        )
-                        continue
 
                     # Create a new embed for each message
                     for entry in data:

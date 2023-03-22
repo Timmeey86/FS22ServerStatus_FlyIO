@@ -34,7 +34,7 @@ commandHandler = CommandHandler(infoPanelHandler, playerStatusHandler, serverSta
 @app_commands.describe(
     id="The ID of the server")
 async def fssb_add_embed(interaction, id: int):
-    print("Received fssb_add_embed command for id %s" % id)
+    print(f"Received fssb_add_embed command for id {id}")
     await commandHandler.add_embed(interaction, id)
 
 
@@ -112,7 +112,7 @@ async def on_ready():
         await tree.sync()
         print("[main] Tree is now synched")
     except:
-        print("[main] Failed waiting for tree sync: %s" % traceback.format_exc())
+        print(f"[main] Failed waiting for tree sync: {traceback.format_exc()}")
 
     if os.path.exists("/data"):
         print("[main] /data exists")
@@ -128,15 +128,10 @@ async def on_ready():
     serverD = FS22ServerConfig(3, os.getenv("SERVER_D_IP"), os.getenv(
         "SERVER_D_PORT"), os.getenv("SERVER_D_APICODE"), "🇮🇹", "Server D", "9C59B6", "726322101786509335")
 
-    serverConfigs = {}
-    serverConfigs[0] = serverA
-    serverConfigs[1] = serverB
-    serverConfigs[2] = serverC
-    serverConfigs[3] = serverD
+    serverConfigs = {0: serverA, 1: serverB, 2: serverC, 3: serverD}
     commandHandler.restore_servers(serverConfigs)
 
-    for serverId in serverConfigs:
-        serverConfig = serverConfigs[serverId]
+    for serverConfig in serverConfigs.values():
         tracker = ServerTracker(serverConfig)
         tracker.events.initial += infoPanelHandler.on_initial_event
         tracker.events.updated += infoPanelHandler.on_updated
@@ -171,7 +166,6 @@ def signal_handler(sig, frame):
 
 signal.signal(signal.SIGINT, signal_handler)
 try:
-
     if os.getenv("SERVER_A_IP") is None:
         print("[main] Loading local environment")
         load_dotenv()
@@ -181,5 +175,5 @@ try:
     print("[main] Running client")
     token = os.getenv("DISCORD_TOKEN")
     client.run(token)
-except:
-    print("[main] %s" % traceback.format_exc())
+except Exception:
+    print(f"[main] {traceback.format_exc()}")
