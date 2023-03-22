@@ -34,7 +34,7 @@ class InfoPanelHandler:
         self.enabled = True
         self.task = None
         self.discordClient = discordClient
-        self.debug = True
+        self.debug = False
 
     def add_config(self, serverId, discordInfoPanelConfig):
         with self.lock:
@@ -105,7 +105,7 @@ class InfoPanelHandler:
                         )
 
                     # don't spam discord
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(3)
 
         print("[INFO ] [InfoPanelHandler] InfoPanelHandler was aborted")
         self.task = None

@@ -4,6 +4,7 @@ from fs22.servertracker import ServerTracker
 from discord.infopanelhandler import InfoPanelHandler
 from discord.playerstatushandler import PlayerStatusHandler
 from discord.serverstatushandler import ServerStatusHandler
+from discord.summaryhandler import SummaryHandler
 from discord.commandhandler import CommandHandler
 from dotenv import load_dotenv
 import discord
@@ -26,7 +27,8 @@ tree = app_commands.CommandTree(client)
 infoPanelHandler = InfoPanelHandler(client)
 playerStatusHandler = PlayerStatusHandler(client)
 serverStatusHandler = ServerStatusHandler(client)
-commandHandler = CommandHandler(infoPanelHandler, playerStatusHandler, serverStatusHandler)
+summaryHandler = SummaryHandler(client)
+commandHandler = CommandHandler(infoPanelHandler, playerStatusHandler, serverStatusHandler, summaryHandler)
 
 
 @tree.command(name="fssb_add_embed",
@@ -38,7 +40,7 @@ async def fssb_add_embed(interaction, id: int):
     await commandHandler.add_embed(interaction, id)
 
 
-@tree.command(name="fssb_set_member_channel",
+@tree.command(name="fssb_set_member_status_channel",
               description="Sets this channel as the target channel for online/offline/admin player messages")
 @app_commands.describe(
     id="The ID of the server")
@@ -46,18 +48,18 @@ async def fssb_set_member_channel(interaction, id: int):
     await commandHandler.set_member_channel(interaction, id)
 
 
-@tree.command(name="fssb_set_server_channel",
+@tree.command(name="fssb_set_server_status_channel",
               description="Sets this channel as the target channel for online/offline server messages")
 @app_commands.describe(id="The ID of the server")
 async def fssb_set_server_channel(interaction, id: int):
     await commandHandler.set_server_channel(interaction, id)
 
 
-@tree.command(name="fssb_set_status_channel",
+@tree.command(name="fssb_set_summary_channel",
               description="Make this channel display the online state and player count in its name")
 @app_commands.describe(id="The ID of the server", shortname="The short name for the server")
-async def fssb_set_status_channel(interaction, id: int, shortname: str):
-    await commandHandler.set_status_channel(interaction, id, shortname)
+async def fssb_set_summary_channel(interaction, id: int, shortname: str):
+    await commandHandler.set_summary_channel(interaction, id, shortname)
 
 
 @tree.command(name="fssb_set_bot_status_channel",
@@ -111,7 +113,7 @@ async def on_ready():
     try:
         await tree.sync()
         print("[main] Tree is now synched")
-    except:
+    except Exception:
         print(f"[main] Failed waiting for tree sync: {traceback.format_exc()}")
 
     if os.path.exists("/data"):
@@ -135,17 +137,20 @@ async def on_ready():
         tracker = ServerTracker(serverConfig)
         tracker.events.initial += infoPanelHandler.on_initial_event
         tracker.events.updated += infoPanelHandler.on_updated
+        tracker.events.updated += summaryHandler.on_updated
         tracker.events.playerWentOnline += playerStatusHandler.on_player_online
         tracker.events.playerWentOffline += playerStatusHandler.on_player_offline
         tracker.events.playerAdminStateChanged += playerStatusHandler.on_player_admin
         tracker.events.serverStatusChanged += serverStatusHandler.on_server_status_changed
-        #tracker.events.playerCountChanged +=
+        tracker.events.serverStatusChanged += summaryHandler.on_server_status_changed
+        tracker.events.playerCountChanged += summaryHandler.on_player_count_changed
         tracker.start_tracker()
 
     print("[main] Finished initialization")
     infoPanelHandler.start()
     playerStatusHandler.start()
     serverStatusHandler.start()
+    summaryHandler.start()
 
     while (not stopped):
         print("[main] Sleeping 60s", flush=True)
@@ -155,6 +160,7 @@ async def on_ready():
     infoPanelHandler.stop()
     playerStatusHandler.stop()
     serverStatusHandler.stop()
+    summaryHandler.stop()
     print("[main] Done")
 
 

@@ -40,7 +40,7 @@ class PlayerStatusHandler:
         self.enabled = True
         self.task = None
         self.discordClient = discordClient
-        self.debug = True
+        self.debug = False
     
     def add_config(self, serverId, playerStatusConfig):
         with self.lock:
@@ -86,18 +86,7 @@ class PlayerStatusHandler:
 
                     # Create a new embed for each message
                     for entry in data:
-                        if entry.isOnlineMessage:
-                            overrideColor = config.color
-                            indicator = "👤"
-                            statusPart = "now online"
-                        elif entry.isOfflineMessage:
-                            overrideColor = "992E22"
-                            indicator = "👋"
-                            statusPart = "no longer"
-                        elif entry.isAdminMessage:
-                            overrideColor = config.color
-                            indicator = "🎩"
-                            statusPart = "now an admin"
+                        overrideColor, indicator, statusPart = get_entry_dependent_settings(entry)
 
                         try:
                             message = f"{indicator} **{entry.player}** is {statusPart} on {config.icon} **{config.title}**"
@@ -111,6 +100,21 @@ class PlayerStatusHandler:
 
         print("[INFO ] [PlayerStatusHandler] PlayerStatusHandler was aborted")
         self.task = None
+
+    def get_entry_dependent_settings(self, entry):
+        if entry.isOnlineMessage:
+            overrideColor = config.color
+            indicator = "👤"
+            statusPart = "now online"
+        elif entry.isOfflineMessage:
+            overrideColor = "992E22"
+            indicator = "👋"
+            statusPart = "no longer"
+        elif entry.isAdminMessage:
+            overrideColor = config.color
+            indicator = "🎩"
+            statusPart = "now an admin"
+        return overrideColor, indicator, statusPart
 
     ### Event listeners ###
     

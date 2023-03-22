@@ -3,23 +3,26 @@ from fs22.fs22server import FS22ServerConfig
 from discord.infopanelhandler import InfoPanelHandler
 from discord.playerstatushandler import PlayerStatusHandler
 from discord.serverstatushandler import ServerStatusHandler
+from discord.summaryhandler import SummaryHandler
 import traceback
+
 
 class CommandHandler:
 
-    def __init__(self, infoPanelHandler, playerStatusHandler, serverStatusHandler):
+    def __init__(self, infoPanelHandler, playerStatusHandler, serverStatusHandler, summaryHandler):
         self.lock = Lock()
         self.serverConfigs = {}
         self.nextServerId = 0
         self.infoPanelHandler = infoPanelHandler
         self.playerStatusHandler = playerStatusHandler
         self.serverStatusHandler = serverStatusHandler
+        self.summaryHandler = summaryHandler
 
     def restore_servers(self, serverConfigs):
         with self.lock:
             self.serverConfigs = serverConfigs
             for id in serverConfigs:
-                if(id >= self.nextServerId):
+                if (id >= self.nextServerId):
                     self.nextServerId = id + 1
 
     async def check_admin_permission(self, interaction):
@@ -48,12 +51,12 @@ class CommandHandler:
         with self.lock:
             if serverId not in self.serverConfigs:
                 await interaction.response.send_message(
-                    content="There is no server with ID %s" % serverId,
+                    content=f"There is no server with ID {serverId}",
                     ephemeral=True,
-                    delete_after=10
+                    delete_after=10,
                 )
                 for serverId in self.serverConfigs:
-                    print("Available server ID: %s" % serverId)
+                    print(f"Available server ID: {serverId}")
                 return False
 
             print("[CommandHandler] Server found")
@@ -65,7 +68,9 @@ class CommandHandler:
                     ephemeral=True,
                     delete_after=10
                 )
-                print("Stored guild ID: %s. Supplied guild ID: %s" % (str(self.serverConfigs[serverId].guildId), str(interaction.guild_id)))
+                print(
+                    f"Stored guild ID: {str(self.serverConfigs[serverId].guildId)}. Supplied guild ID: {str(interaction.guild_id)}"
+                )
                 return False
 
             print("[CommandHandler] Guild matched")
@@ -79,7 +84,7 @@ class CommandHandler:
         try:
             await self.infoPanelHandler.create_embed(id, interaction, config.ip, config.port, config.icon, config.title, config.color)
             await interaction.response.send_message(content="Panel successfully created", ephemeral=True, delete_after=10)
-        except:
+        except Exception:
             await interaction.response.send_message(content="Failed creating the embed")
             print(traceback.format_exc())
 
@@ -89,9 +94,9 @@ class CommandHandler:
         with self.lock:
             config = self.serverConfigs[id]
         try:
-            await self.playerStatusHandler.track_server(id, interaction, config.title, config.icon, config.color) 
+            await self.playerStatusHandler.track_server(id, interaction, config.title, config.icon, config.color)
             await interaction.response.send_message(content="Player status successfully tracked", ephemeral=True, delete_after=10)
-        except:
+        except Exception:
             await interaction.response.send_message(content="Failed tracking player status")
             print(traceback.format_exc())
 
@@ -103,19 +108,25 @@ class CommandHandler:
         try:
             await self.serverStatusHandler.track_server(id, interaction, config.title, config.icon, config.color)
             await interaction.response.send_message(content="Server status successfully tracked", ephemeral=True, delete_after=10)
-        except:
+        except Exception:
             await interaction.response.send_message(content="Failed tracking server status")
             print(traceback.format_exc())
-    
-    async def set_status_channel(self, interaction, id, shortName):
+
+    async def set_summary_channel(self, interaction, id, shortName):
         if not await self.check_parameters(interaction, id):
             return
-        pass
+        with self.lock:
+            config = self.serverConfigs[id]
+        try:
+            await self.summaryHandler.track_server(id, interaction, shortName)
+            await interaction.response.send_message(content="Summary successfully registered on current channel", ephemeral=True, delete_after=10)
+        except Exception:
+            await interaction.response.send_message(content="Failed setting up summary channel")
+            print(traceback.format_exc())
 
     async def set_bot_status_channel(self, interaction):
         if not await self.check_parameters(interaction, id):
             return
-        pass
 
     async def register_server(interaction, ip, port, apiCode, icon, title, color):
         if not await self.check_admin_permission(interaction):
@@ -123,13 +134,14 @@ class CommandHandler:
         with self.lock:
             serverId = self.nextServerId
             self.nextServerId += 1
-            serverConfig = FS22ServerConfig(serverId, ip, port, apiCode, icon, title, color, interaction.guild_id)
+            serverConfig = FS22ServerConfig(
+                serverId, ip, port, apiCode, icon, title, color, interaction.guild_id)
             self.serverConfigs[serverId] = serverConfig
         await interaction.response.send_message(content="Successfully registered the server. Your server ID is %s. " +
-        "Please write that down since you will need it for all further commands", ephemeral=True)
+                                                "Please write that down since you will need it for all further commands", ephemeral=True)
         # TODO: Connect events
 
     async def remove_server(interaction, id):
         if not await self.check_parameters(interaction, id):
             return
-        pass
+        await interaction.response.send_message(content="Not implemented yet, sorry")
