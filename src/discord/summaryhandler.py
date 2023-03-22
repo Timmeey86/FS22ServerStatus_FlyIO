@@ -165,7 +165,7 @@ class SummaryHandler:
             current = self.currentData[serverId]
             if current is not None:
                 self.pendingData[serverId] = SummaryStatus(
-                    str(playerCount), current.maxPlayers, current.status, None)
+                    str(playerCount), current.maxPlayers, current.onlineState, None)
             else:
                 self.pendingData[serverId] = SummaryStatus(
                     str(playerCount), "0", OnlineState.Unknown, None)
