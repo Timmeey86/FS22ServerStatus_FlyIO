@@ -31,7 +31,7 @@ class PlayerStatusHandler:
 
     def debugPrint(self, message):
         if self.debug == True:
-            print("[DEBUG] [PlayerStatusHandler] %s" % message)
+            print(f"[DEBUG] [PlayerStatusHandler] {message}")
 
     def __init__(self, discordClient):
         self.configs = {} # Stores a configuration object for every tracked server
@@ -81,7 +81,7 @@ class PlayerStatusHandler:
             # Process copied data now
             for serverId in configsCopy:
                 if len(pendingDataCopy[serverId]) > 0:
-                    self.debugPrint("Processing messages for server ID %s" % serverId)
+                    self.debugPrint(f"Processing messages for server ID {serverId}")
                     data = pendingDataCopy[serverId]
                     config = configsCopy[serverId]
 
@@ -89,9 +89,11 @@ class PlayerStatusHandler:
 
                     try:
                         channel = self.discordClient.get_channel(config.channelId)
-                    except:
+                    except Exception:
                         # This could e.g. happen in case of Cloudflare rate limiting
-                        print("[WARN ] [PlayerStatusHandler] Failed to retrieve member log channel ID: %s" % traceback.format_exc())
+                        print(
+                            f"[WARN ] [PlayerStatusHandler] Failed to retrieve member log channel ID: {traceback.format_exc()}"
+                        )
                         continue
 
                     # Create a new embed for each message
@@ -105,16 +107,16 @@ class PlayerStatusHandler:
                             indicator = "👋"
                             statusPart = "now offline"
                         elif entry.isAdminMessage:
-                            overrideCOlor = config.color
+                            overrideColor = config.color
                             indicator = "🎩"
                             statusPart = "now an admin"
 
                         try:
-                            message = "%s **%s** is %s on %s **%s**" % (indicator, entry.player, statusPart, config.icon, config.title)
+                            message = f"{indicator} **{entry.player}** is {statusPart} on {config.icon} **{config.title}**"
                             embed = discord.Embed(description=message, color=int(overrideColor,16))
                             await channel.send(embed=embed)
-                        except:
-                            print("[WARN ] [PlayerStatusHandler] Failed creating a player status embed: %s" % traceback.format_exc())
+                        except Exception:
+                            print(f"[WARN ] [PlayerStatusHandler] Failed creating a player status embed: {traceback.format_exc()}")
 
                         # don't spam messages
                         await asyncio.sleep(1)

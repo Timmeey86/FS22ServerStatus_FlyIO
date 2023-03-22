@@ -125,6 +125,9 @@ class CommandHandler:
             self.nextServerId += 1
             serverConfig = FS22ServerConfig(serverId, ip, port, apiCode, icon, title, color, interaction.guild_id)
             self.serverConfigs[serverId] = serverConfig
+        await interaction.response.send_message(content="Successfully registered the server. Your server ID is %s. " +
+        "Please write that down since you will need it for all further commands", ephemeral=True)
+        # TODO: Connect events
 
     async def remove_server(interaction, id):
         if not await self.check_parameters(interaction, id):

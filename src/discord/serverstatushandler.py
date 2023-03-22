@@ -26,7 +26,7 @@ class ServerStatusHandler:
 
     def debugPrint(self, message):
         if self.debug == True:
-            print("[DEBUG] [ServerStatusHandler] %s" % message)
+            print(f"[DEBUG] [ServerStatusHandler] {message}")
 
     def __init__(self, discordClient):
         self.configs = {} # Stores a configuration object for every tracked server
@@ -76,7 +76,7 @@ class ServerStatusHandler:
             # Process copied data now
             for serverId in configsCopy:
                 if len(pendingDataCopy[serverId]) > 0:
-                    self.debugPrint("Processing messages for server ID %s" % serverId)
+                    self.debugPrint(f"Processing messages for server ID {serverId}")
                     data = pendingDataCopy[serverId]
                     config = configsCopy[serverId]
 
@@ -84,11 +84,13 @@ class ServerStatusHandler:
 
                     try:
                         channel = self.discordClient.get_channel(config.channelId)
-                    except:
+                    except Exception:
                         # This could e.g. happen in case of Cloudflare rate limiting
-                        print("[WARN ] [ServerStatusHandler] Failed to retrieve server log channel ID: %s" % traceback.format_exc())
+                        print(
+                            f"[WARN ] [ServerStatusHandler] Failed to retrieve server log channel ID: {traceback.format_exc()}"
+                        )
                         continue
-                    
+
                     # Create a new embed for each message
                     for entry in data:
                         if entry.isOnlineMessage:
@@ -97,13 +99,15 @@ class ServerStatusHandler:
                         elif entry.isOfflineMessage:
                             indicator = "🔴"
                             statusPart = "now offline"
-                            
+
                         try:
-                            message = "%s %s **%s** is %s" % (indicator, config.icon, config.title, statusPart)
-                            embed = discord.Embed(description=message, color=int(overrideColor,16))
+                            message = f"{indicator} {config.icon} **{config.title}** is {statusPart}"
+                            embed = discord.Embed(description=message, color=int(config.color,16))
                             await channel.send(embed=embed)
-                        except:
-                            print("[WARN ] [ServerStatusHandler] Failed creating a player status embed: %s" % traceback.format_exc())
+                        except Exception:
+                            print(
+                                f"[WARN ] [ServerStatusHandler] Failed creating a server status embed: {traceback.format_exc()}"
+                            )
 
                         # don't spam messages
                         await asyncio.sleep(1)

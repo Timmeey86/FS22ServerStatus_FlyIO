@@ -24,7 +24,7 @@ class InfoPanelHandler:
 
     def debugPrint(self, message):
         if self.debug == True:
-            print("[DEBUG] [InfoPanelHandler] %s" % message)
+            print(f"[DEBUG] [InfoPanelHandler] {message}")
 
     def __init__(self, discordClient):
         self.configs = {}           # Stores the info panel configurations for each server ID
@@ -72,42 +72,49 @@ class InfoPanelHandler:
                     self.pendingServerData[serverId] = None
             for serverId in configsCopy:
                 if serverId in pendingDataCopy and pendingDataCopy[serverId] is not None:
-                    self.debugPrint("Found updated data for server ID %s" % (serverId))
+                    self.debugPrint(f"Found updated data for server ID {serverId}")
                     data = pendingDataCopy[serverId]
                     config = configsCopy[serverId]
-                    
+
                     # Try finding the message for the embed
                     try:
                         self.debugPrint("Retrieving channel")
-                        channel = self.discordClient.get_channel(config.channelId)                            
-                        self.debugPrint("Fetching embed for channel %s and embed %s" % (config.channelId, config.embedId))
+                        channel = self.discordClient.get_channel(config.channelId)
+                        self.debugPrint(
+                            f"Fetching embed for channel {config.channelId} and embed {config.embedId}"
+                        )
                         embedMessage = await channel.fetch_message(config.embedId)
-                    except:
-                        print("[wARN ] [InfoPanelHandler] WARN: Could not find embed for server %s (ID %s): %s" %
-                                (config.title, serverId, traceback.format_exc()))
+                    except Exception:
+                        print(
+                            f"[wARN ] [InfoPanelHandler] WARN: Could not find embed for server {config.title} (ID {serverId}): {traceback.format_exc()}"
+                        )
                         continue
                     # Build the text to be displayed
                     try:
                         self.debugPrint("Retrieving text")
                         embedText = self.getText(config, data)
-                    except:
-                        print("[WARN ] [InfoPanelHandler] Failed creating embed text: %s" % traceback.format_exc())
+                    except Exception:
+                        print(
+                            f"[WARN ] [InfoPanelHandler] Failed creating embed text: {traceback.format_exc()}"
+                        )
                         continue
 
                     # Update the embed
                     try:
                         self.debugPrint("Updating embed")
-                        embed = discord.Embed(title="%s %s" % (config.icon, data.serverName),
-                                            description=embedText,
-                                            color=int(config.color, 16))
+                        embed = discord.Embed(
+                            title=f"{config.icon} {data.serverName}",
+                            description=embedText,
+                            color=int(config.color, 16),
+                        )
                         self.debugPrint("Adding last update field")
-                        embed.add_field(name="Last Update",
-                                        value="%s" % datetime.datetime.now())
+                        embed.add_field(name="Last Update", value=f"{datetime.datetime.now()}")
                         self.debugPrint("Updating embed")
                         await embedMessage.edit(embed=embed)
-                    except:
-                        print("[WARN ] [InfoPanelHandler] Could not update embed for server %s (ID %s): %s"
-                        % (config.title, serverId, traceback.format_exc()))
+                    except Exception:
+                        print(
+                            f"[WARN ] [InfoPanelHandler] Could not update embed for server {config.title} (ID {serverId}): {traceback.format_exc()}"
+                        )
 
                     # don't spam discord
                     await asyncio.sleep(1)
@@ -128,16 +135,16 @@ class InfoPanelHandler:
             self.pendingServerData[serverId] = serverData
 
     def getText(self, serverConfig, serverData):
-        message = \
-            "**Map: **" + serverData.mapName + "\r\n" + \
-            "**Status: **" + serverData.status + "\r\n" + \
-            "**Server Time: **" + self.get_server_time(serverData) + "\r\n" + \
-            "**Mods Link: **" + self.get_mods_link(serverConfig) + "\r\n" + \
-            "**Players Online: **" + str(len(serverData.onlinePlayers)) + "/" + serverData.maxPlayers + "\r\n" + \
-            "**Players: **"
+        message = (
+            f"**Map: **{serverData.mapName}\r\n"
+            + f"**Status: **{serverData.status}\r\n"
+            + f"**Server Time: **{self.get_server_time(serverData)}\r\n"
+            + f"**Mods Link: **{self.get_mods_link(serverConfig)}\r\n"
+            + f"**Players Online: **{len(serverData.onlinePlayers)}/{serverData.maxPlayers}\r\n"
+        ) + "**Players: **"
 
         if not serverData.onlinePlayers:
-            message = message + "(none)"
+            message = f"{message}(none)"
         else:
             for playerName in serverData.onlinePlayers:
                 message = message + "\r\n - %s (%s min)" % (
@@ -153,4 +160,4 @@ class InfoPanelHandler:
 
     def get_mods_link(self, serverConfig):
         """Retrieves the link to the mods page"""
-        return "http://%s:%s/mods.html" % (serverConfig.ip, serverConfig.port)
+        return f"http://{serverConfig.ip}:{serverConfig.port}/mods.html"
