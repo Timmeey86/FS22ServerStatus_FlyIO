@@ -52,7 +52,7 @@ class SummaryHandler:
         self.enabled = True
         self.task = None
         self.discordClient = discordClient
-        self.debug = True
+        self.debug = False
 
     def add_config(self, serverId, summaryConfig):
         with self.lock:
@@ -99,23 +99,9 @@ class SummaryHandler:
                 pending = pendingDataCopy[serverId]
                 if pending is not None:
                     current = currentDataCopy[serverId]
-                    self.debugPrint(
-                        f"Checking timestamp for server ID {serverId}")
-                    if current == None:
-                        self.debugPrint(
-                            "Update is allowed since this is the first one")
-                    elif (datetime.datetime.now() - currentDataCopy[serverId].timestamp).total_seconds() < 360:
-                        self.debugPrint(
-                            "Delaying update since the last one was less than six minutes ago")
+
+                    if not self.update_is_necessary(pending, current):
                         continue
-                    elif current.maxPlayers == pending.maxPlayers and current.onlinePlayers == pending.onlinePlayers and current.onlineState == pending.onlineState:
-                        self.debugPrint(
-                            "Deleting update since it would not change anything")
-                        with self.lock:
-                            self.pendingData[serverId] = None
-                        continue
-                    else:
-                        self.debugPrint("Applying update")
 
                     onlineSign = "🟢" if pending.onlineState == OnlineState.Online else "🔴"
                     try:
@@ -134,6 +120,27 @@ class SummaryHandler:
 
         print("[INFO ] [SummaryHandler] SummaryHandler was aborted")
         self.task = None
+
+    def update_is_necessary(self, pending, current):
+        self.debugPrint(
+            f"Validating if update is necessary for server {serverId}")
+        if current is None:
+            self.debugPrint(
+                "Update is allowed since this is the first one")
+            return True
+        if current.maxPlayers == pending.maxPlayers and current.onlinePlayers == pending.onlinePlayers and current.onlineState == pending.onlineState:
+            self.debugPrint(
+                "Deleting update since it would not change anything")
+            with self.lock:
+                self.pendingData[serverId] = None
+            return False
+        if (datetime.datetime.now() - current.timestamp).total_seconds() < 360:
+            self.debugPrint(
+                "Delaying update since the last one was less than six minutes ago")
+            return False
+        else:
+            self.debugPrint("Update is necessary")
+            return True
 
     ### Event listeners ###
 
