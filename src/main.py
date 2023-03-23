@@ -23,6 +23,13 @@ intents.message_content = True
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 
+# Get the path to the persistent storage (OS dependent)
+if os.path.exists("/data"):
+    print("[INFO ] [main] Unix detected. Using /data as root directory")
+    storageRootPath = "/data"
+if os.path.exists("C:/temp"):
+    print("[INFO ] [main] Windows detected. Using C:\\temp as root directory")
+    storageRootPath = "C:\\temp"
 
 # build the main object tree
 infoPanelHandler = InfoPanelHandler(client)
@@ -30,7 +37,7 @@ playerStatusHandler = PlayerStatusHandler(client)
 serverStatusHandler = ServerStatusHandler(client)
 summaryHandler = SummaryHandler(client)
 commandHandler = CommandHandler(infoPanelHandler, playerStatusHandler, serverStatusHandler, summaryHandler)
-
+persistenceDataMapper = PersistenceDataMapper(commandHandler)
 
 @tree.command(name="fssb_add_embed",
               description="Adds an embed to this channel displaying live info about the FS22 server")
@@ -39,7 +46,7 @@ commandHandler = CommandHandler(infoPanelHandler, playerStatusHandler, serverSta
 async def fssb_add_embed(interaction, id: int):
     print(f"Received fssb_add_embed command for id {id}")
     await commandHandler.add_embed(interaction, id)
-    print(PersistenceDataMapper(commandHandler).get_current_data().__dict__)
+    persistenceDataMapper.store_data(storageRootPath)
 
 
 @tree.command(name="fssb_set_member_status_channel",
@@ -48,7 +55,7 @@ async def fssb_add_embed(interaction, id: int):
     id="The ID of the server")
 async def fssb_set_member_channel(interaction, id: int):
     await commandHandler.set_member_channel(interaction, id)
-    print(PersistenceDataMapper(commandHandler).get_current_data().__dict__)
+    persistenceDataMapper.store_data(storageRootPath)
 
 
 @tree.command(name="fssb_set_server_status_channel",
@@ -56,7 +63,7 @@ async def fssb_set_member_channel(interaction, id: int):
 @app_commands.describe(id="The ID of the server")
 async def fssb_set_server_channel(interaction, id: int):
     await commandHandler.set_server_channel(interaction, id)
-    print(PersistenceDataMapper(commandHandler).get_current_data().__dict__)
+    persistenceDataMapper.store_data(storageRootPath)
 
 
 @tree.command(name="fssb_set_summary_channel",
@@ -64,7 +71,7 @@ async def fssb_set_server_channel(interaction, id: int):
 @app_commands.describe(id="The ID of the server", shortname="The short name for the server")
 async def fssb_set_summary_channel(interaction, id: int, shortname: str):
     await commandHandler.set_summary_channel(interaction, id, shortname)
-    print(PersistenceDataMapper(commandHandler).get_current_data().__dict__)
+    persistenceDataMapper.store_data(storageRootPath)
 
 
 @tree.command(name="fssb_set_bot_status_channel",
@@ -72,7 +79,7 @@ async def fssb_set_summary_channel(interaction, id: int, shortname: str):
 @app_commands.describe()
 async def fssb_set_bot_status_channel(interaction):
     await commandHandler.set_bot_status_channel(interaction)
-    print(PersistenceDataMapper(commandHandler).get_current_data().__dict__)
+    persistenceDataMapper.store_data(storageRootPath)
 
 
 @tree.command(name="fssb_register_server",
@@ -86,14 +93,14 @@ async def fssb_set_bot_status_channel(interaction):
     color="The color code to be used in various messages, e.g. FF0000 for red (RGB Hex)")
 async def fssb_register_server(interaction, ip: str, port: str, apicode: str, icon: str, title: str, color: str):
     await commandHandler.register_server(interaction, ip, port, apicode, icon, title, color)
-    print(PersistenceDataMapper(commandHandler).get_current_data().__dict__)
+    persistenceDataMapper.store_data(storageRootPath)
 
 @tree.command(name="fssb_remove_server",
               description="Stops tracking an FS22 server")
 @app_commands.describe(id="The server ID")
 async def fssb_remove_server(interaction, id: int):
     await commandHandler.remove_server(interaction, id)
-    print(PersistenceDataMapper(commandHandler).get_current_data().__dict__)
+    persistenceDataMapper.store_data(storageRootPath)
 
 @tree.command(name="fssb_send_message", description="Makes the bot send a message for you")
 @app_commands.describe(message="The message you would like to send")
@@ -115,6 +122,11 @@ async def on_ready():
     """
     Tells us when the bot is logged in to discord (in the replit console)
     """
+    
+    # Restore existing config first
+
+    await PersistenceDataMapper(commandHandler).restore_data(storageRootPath, client)
+
     # Enable slash commands like /fss_add_embed
     print("[INFO ] [main] Discord client is ready")
     print("[INFO ] [main] Waiting for tree sync")
@@ -124,10 +136,6 @@ async def on_ready():
     except Exception:
         print(f"[INFO ] [main] Failed waiting for tree sync: {traceback.format_exc()}")
 
-    if os.path.exists("/data"):
-        print("[INFO ] [main] /data exists")
-    if os.path.exists("C:/temp"):
-        print("[INFO ] [main] C:\\temp exists")
 
     serverA = FS22ServerConfig(0, os.getenv("SERVER_A_IP"), os.getenv(
         "SERVER_A_PORT"), os.getenv("SERVER_A_APICODE"), "🇬🇧", "Server A", "206694", "726322101786509335")
