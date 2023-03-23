@@ -4,6 +4,7 @@ import asyncio
 import discord
 import traceback
 import copy
+import time
 
 class ServerStatusConfig:
     """This class stores the fixed information about a server status reporting channel"""
@@ -42,6 +43,10 @@ class ServerStatusHandler:
             self.configs[serverId] = serverStatusConfig
             self.pendingData[serverId] = []
 
+    def get_config(self, serverId):
+        with self.lock:
+            return None if serverId not in self.configs else self.configs[serverId]
+
     async def track_server(self, serverId, interaction, title, icon, color):
         # TOOD: Status message about the server being tracked
         serverStatusConfig = ServerStatusConfig(title, icon, color, interaction.channel)
@@ -58,12 +63,22 @@ class ServerStatusHandler:
         if self.task is not None:
             self.enabled = False
 
+    async def wait_for_completion(self):
+        counter = 0
+        while counter < 70 and not self.task.done():
+            await asyncio.sleep(1)
+            counter += 1
+        self.task = None
+
     ### Discord update ###
 
     async def post_pending_messages(self):
         while self.enabled == True:
-            # Give discord a chance to relax
-            await asyncio.sleep(60)
+            # Sleep 60 seconds, but abort at any time when requested
+            for _ in range(1, 60):
+                await asyncio.sleep(1)
+                if self.enabled == False:
+                    return
             self.debugPrint("Waking up")
             # Copy configs and pending data (keep the lock short)
             with self.lock:

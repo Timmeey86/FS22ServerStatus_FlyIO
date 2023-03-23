@@ -4,6 +4,7 @@ import discord
 import datetime
 import traceback
 import copy
+import time
 
 
 class InfoPanelConfig:
@@ -41,6 +42,10 @@ class InfoPanelHandler:
             self.configs[serverId] = discordInfoPanelConfig
             self.pendingServerData[serverId] = None
 
+    def get_config(self, serverId):
+        with self.lock:
+            return None if serverId not in self.configs else self.configs[serverId]
+
     async def create_embed(self, serverId, interaction, ip, port, icon, title, color):
         embed = discord.Embed(title="Pending...", color=int(color, 16))
         message = await interaction.channel.send(embed=embed)
@@ -59,12 +64,24 @@ class InfoPanelHandler:
         if self.task is not None:
             self.enabled = False
 
+    async def wait_for_completion(self):
+        counter = 0
+        while counter < 70 and not self.task.done():
+            await asyncio.sleep(1)
+            counter += 1
+        self.task = None
+
     ### Discord update ###
 
     async def update_panels(self):
         self.debugPrint("Processing has started")
         while self.enabled == True:
-            await asyncio.sleep(60)
+            # Sleep 60 seconds, but abort at any time when requested
+            for _ in range(1, 60):
+                await asyncio.sleep(1)
+                if self.enabled == False:
+                    return
+
             self.debugPrint("Waking up")
             with self.lock:
                 configsCopy = {serverId: self.configs[serverId] for serverId in self.configs}

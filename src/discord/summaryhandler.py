@@ -5,6 +5,7 @@ import discord
 import traceback
 import copy
 import datetime
+import time
 
 
 class SummaryConfig:
@@ -62,6 +63,10 @@ class SummaryHandler:
             # else: Updates were received before the config was added - keep those updates
             self.currentData[serverId] = None
 
+    def get_config(self, serverId):
+        with self.lock:
+            return None if serverId not in self.configs else self.configs[serverId]
+
     async def track_server(self, serverId, interaction, shortName):
         summaryConfig = SummaryConfig(shortName, interaction.channel)
         self.add_config(serverId, summaryConfig)
@@ -77,12 +82,22 @@ class SummaryHandler:
         if self.task is not None:
             self.enabled = False
 
+    async def wait_for_completion(self):
+        counter = 0
+        while counter < 70 and not self.task.done():
+            await asyncio.sleep(1)
+            counter += 1
+        self.task = None
+
     ### Discord update ###
 
     async def process_updates(self):
         while self.enabled == True:
-            # Check every five seconds
-            await asyncio.sleep(5)
+            # Sleep 60 seconds, but abort at any time when requested
+            for _ in range(1, 60):
+                await asyncio.sleep(1)
+                if self.enabled == False:
+                    return
             self.debugPrint("Waking up")
             # Copy configs and pending data (keep the lock short)
             with self.lock:

@@ -6,6 +6,7 @@ from discord.playerstatushandler import PlayerStatusHandler
 from discord.serverstatushandler import ServerStatusHandler
 from discord.summaryhandler import SummaryHandler
 from discord.commandhandler import CommandHandler
+from persistence import PersistenceDataMapper
 from dotenv import load_dotenv
 import discord
 from discord import app_commands
@@ -38,6 +39,7 @@ commandHandler = CommandHandler(infoPanelHandler, playerStatusHandler, serverSta
 async def fssb_add_embed(interaction, id: int):
     print(f"Received fssb_add_embed command for id {id}")
     await commandHandler.add_embed(interaction, id)
+    print(PersistenceDataMapper(commandHandler).get_current_data().__dict__)
 
 
 @tree.command(name="fssb_set_member_status_channel",
@@ -46,6 +48,7 @@ async def fssb_add_embed(interaction, id: int):
     id="The ID of the server")
 async def fssb_set_member_channel(interaction, id: int):
     await commandHandler.set_member_channel(interaction, id)
+    print(PersistenceDataMapper(commandHandler).get_current_data().__dict__)
 
 
 @tree.command(name="fssb_set_server_status_channel",
@@ -53,6 +56,7 @@ async def fssb_set_member_channel(interaction, id: int):
 @app_commands.describe(id="The ID of the server")
 async def fssb_set_server_channel(interaction, id: int):
     await commandHandler.set_server_channel(interaction, id)
+    print(PersistenceDataMapper(commandHandler).get_current_data().__dict__)
 
 
 @tree.command(name="fssb_set_summary_channel",
@@ -60,6 +64,7 @@ async def fssb_set_server_channel(interaction, id: int):
 @app_commands.describe(id="The ID of the server", shortname="The short name for the server")
 async def fssb_set_summary_channel(interaction, id: int, shortname: str):
     await commandHandler.set_summary_channel(interaction, id, shortname)
+    print(PersistenceDataMapper(commandHandler).get_current_data().__dict__)
 
 
 @tree.command(name="fssb_set_bot_status_channel",
@@ -67,6 +72,7 @@ async def fssb_set_summary_channel(interaction, id: int, shortname: str):
 @app_commands.describe()
 async def fssb_set_bot_status_channel(interaction):
     await commandHandler.set_bot_status_channel(interaction)
+    print(PersistenceDataMapper(commandHandler).get_current_data().__dict__)
 
 
 @tree.command(name="fssb_register_server",
@@ -80,12 +86,14 @@ async def fssb_set_bot_status_channel(interaction):
     color="The color code to be used in various messages, e.g. FF0000 for red (RGB Hex)")
 async def fssb_register_server(interaction, ip: str, port: str, apicode: str, icon: str, title: str, color: str):
     await commandHandler.register_server(interaction, ip, port, apicode, icon, title, color)
+    print(PersistenceDataMapper(commandHandler).get_current_data().__dict__)
 
 @tree.command(name="fssb_remove_server",
               description="Stops tracking an FS22 server")
 @app_commands.describe(id="The server ID")
 async def fssb_remove_server(interaction, id: int):
     await commandHandler.remove_server(interaction, id)
+    print(PersistenceDataMapper(commandHandler).get_current_data().__dict__)
 
 @tree.command(name="fssb_send_message", description="Makes the bot send a message for you")
 @app_commands.describe(message="The message you would like to send")
@@ -152,8 +160,9 @@ async def on_ready():
     serverStatusHandler.start()
     summaryHandler.start()
 
-    while (not stopped):
-        await asyncio.sleep(60)
+    global stopped
+    while stopped == False:
+        await asyncio.sleep(5)
         handlePotentialTaskException(infoPanelHandler.task, "Info Panel Handler")
         handlePotentialTaskException(playerStatusHandler.task, "Player Status Handler")
         handlePotentialTaskException(serverStatusHandler.task, "Server Status Handler")
@@ -164,7 +173,14 @@ async def on_ready():
     playerStatusHandler.stop()
     serverStatusHandler.stop()
     summaryHandler.stop()
+
+    await infoPanelHandler.wait_for_completion()
+    await playerStatusHandler.wait_for_completion()
+    await serverStatusHandler.wait_for_completion()
+    await summaryHandler.wait_for_completion()
     print("[INFO ] [main] Done")
+
+    await client.close()
 
 def handlePotentialTaskException(task, title):
     if task.done() and not task.cancelled():
@@ -175,8 +191,12 @@ def handlePotentialTaskException(task, title):
 
 def signal_handler(sig, frame):
     print("[INFO ] [main] Caught Ctrl+C. Stopping")
-    stopped = True
-    sys.exit(0)
+    global stopped
+    if stopped == True:
+        print("[INFO ] [main] Second Ctrl+C. Exiting immediately")
+        sys.exit(0)
+    else:
+        stopped = True
 
 
 signal.signal(signal.SIGINT, signal_handler)
@@ -190,5 +210,6 @@ try:
     print("[INFO ] [main] Running client")
     token = os.getenv("DISCORD_TOKEN")
     client.run(token)
+    print("[INFO ] [main] Discord client.run() returned")
 except Exception:
     print(f"[ERROR] [main] {traceback.format_exc()}")

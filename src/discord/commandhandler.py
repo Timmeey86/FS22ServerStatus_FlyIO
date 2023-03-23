@@ -24,6 +24,10 @@ class CommandHandler:
                 if (id >= self.nextServerId):
                     self.nextServerId = id + 1
 
+    def get_configs(self):
+        with self.lock:
+            return {serverId: self.serverConfigs[serverId] for serverId in self.serverConfigs}
+
     async def check_admin_permission(self, interaction):
         """
         Checks if the user has admin permissions
