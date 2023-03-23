@@ -83,7 +83,8 @@ class InfoPanelHandler:
                         embedText = self.getText(config, data)
                     except Exception:
                         print(
-                            f"[WARN ] [InfoPanelHandler] Failed creating embed text: {traceback.format_exc()}"
+                            f"[WARN ] [InfoPanelHandler] Failed creating embed text: {traceback.format_exc()}",
+                            flush=True
                         )
                         continue
 
@@ -101,14 +102,14 @@ class InfoPanelHandler:
                         await config.embed.edit(embed=embed)
                     except Exception:
                         print(
-                            f"[WARN ] [InfoPanelHandler] Could not update embed for server {config.title} (ID {serverId}): {traceback.format_exc()}"
+                            f"[WARN ] [InfoPanelHandler] Could not update embed for server {config.title} (ID {serverId}): {traceback.format_exc()}",
+                            flush=True
                         )
 
                     # don't spam discord
                     await asyncio.sleep(3)
 
-        print("[INFO ] [InfoPanelHandler] InfoPanelHandler was aborted")
-        self.task = None
+        print("[INFO ] [InfoPanelHandler] InfoPanelHandler was aborted", flush=True)
 
     ### Event listeners ###
 

@@ -101,7 +101,6 @@ class ServerStatusHandler:
                         await asyncio.sleep(1)
 
         print("[INFO ] [ServerStatusHandler] ServerStatusHandler was aborted")
-        self.task = None
 
     ### Event listeners ###
 

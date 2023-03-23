@@ -119,7 +119,6 @@ class SummaryHandler:
                         self.pendingData[serverId] = None
 
         print("[INFO ] [SummaryHandler] SummaryHandler was aborted")
-        self.task = None
 
     def update_is_necessary(self, serverId, pending, current):
         self.debugPrint(

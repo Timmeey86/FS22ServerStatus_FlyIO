@@ -108,18 +108,18 @@ async def on_ready():
     Tells us when the bot is logged in to discord (in the replit console)
     """
     # Enable slash commands like /fss_add_embed
-    print("[main] Discord client is ready")
-    print("[main] Waiting for tree sync")
+    print("[INFO ] [main] Discord client is ready")
+    print("[INFO ] [main] Waiting for tree sync")
     try:
         await tree.sync()
-        print("[main] Tree is now synched")
+        print("[INFO ] [main] Tree is now synched")
     except Exception:
-        print(f"[main] Failed waiting for tree sync: {traceback.format_exc()}")
+        print(f"[INFO ] [main] Failed waiting for tree sync: {traceback.format_exc()}")
 
     if os.path.exists("/data"):
-        print("[main] /data exists")
+        print("[INFO ] [main] /data exists")
     if os.path.exists("C:/temp"):
-        print("[main] C:\\temp exists")
+        print("[INFO ] [main] C:\\temp exists")
 
     serverA = FS22ServerConfig(0, os.getenv("SERVER_A_IP"), os.getenv(
         "SERVER_A_PORT"), os.getenv("SERVER_A_APICODE"), "🇬🇧", "Server A", "206694", "726322101786509335")
@@ -146,26 +146,35 @@ async def on_ready():
         tracker.events.playerCountChanged += summaryHandler.on_player_count_changed
         tracker.start_tracker()
 
-    print("[main] Finished initialization")
+    print("[INFO ] [main] Finished initialization")
     infoPanelHandler.start()
     playerStatusHandler.start()
     serverStatusHandler.start()
     summaryHandler.start()
 
     while (not stopped):
-        print("[main] Sleeping 60s", flush=True)
         await asyncio.sleep(60)
+        handlePotentialTaskException(infoPanelHandler.task, "Info Panel Handler")
+        handlePotentialTaskException(playerStatusHandler.task, "Player Status Handler")
+        handlePotentialTaskException(serverStatusHandler.task, "Server Status Handler")
+        handlePotentialTaskException(summaryHandler.task, "Summary Handler")
 
-    print("[main] Waiting for threads to end")
+    print("[INFO ] [main] Waiting for threads to end")
     infoPanelHandler.stop()
     playerStatusHandler.stop()
     serverStatusHandler.stop()
     summaryHandler.stop()
-    print("[main] Done")
+    print("[INFO ] [main] Done")
 
+def handlePotentialTaskException(task, title):
+    if task.done() and not task.cancelled():
+        exc = task.exception()
+        if exc is not None:
+            print(f"[ERROR] [main] {title} encountered an exception: {exc}")
+            print(f"[ERROR] [main] Traceback: {task.get_stack()}")
 
 def signal_handler(sig, frame):
-    print("[main] Caught Ctrl+C. Stopping")
+    print("[INFO ] [main] Caught Ctrl+C. Stopping")
     stopped = True
     sys.exit(0)
 
@@ -173,13 +182,13 @@ def signal_handler(sig, frame):
 signal.signal(signal.SIGINT, signal_handler)
 try:
     if os.getenv("SERVER_A_IP") is None:
-        print("[main] Loading local environment")
+        print("[INFO ] [main] Loading local environment")
         load_dotenv()
     else:
-        print("[main] Using existing environment")
+        print("[INFO ] [main] Using existing environment")
 
-    print("[main] Running client")
+    print("[INFO ] [main] Running client")
     token = os.getenv("DISCORD_TOKEN")
     client.run(token)
 except Exception:
-    print(f"[main] {traceback.format_exc()}")
+    print(f"[ERROR] [main] {traceback.format_exc()}")

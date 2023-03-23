@@ -6,7 +6,6 @@ from discord.serverstatushandler import ServerStatusHandler
 from discord.summaryhandler import SummaryHandler
 import traceback
 
-
 class CommandHandler:
 
     def __init__(self, infoPanelHandler, playerStatusHandler, serverStatusHandler, summaryHandler):

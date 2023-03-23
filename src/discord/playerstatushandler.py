@@ -86,22 +86,22 @@ class PlayerStatusHandler:
 
                     # Create a new embed for each message
                     for entry in data:
-                        overrideColor, indicator, statusPart = get_entry_dependent_settings(entry)
+                        overrideColor, indicator, statusPart = self.get_entry_dependent_settings(entry, config)
 
                         try:
                             message = f"{indicator} **{entry.player}** is {statusPart} on {config.icon} **{config.title}**"
                             embed = discord.Embed(description=message, color=int(overrideColor,16))
                             await config.channel.send(embed=embed)
                         except Exception:
-                            print(f"[WARN ] [PlayerStatusHandler] Failed creating a player status embed: {traceback.format_exc()}")
+                            print(f"[WARN ] [PlayerStatusHandler] Failed creating a player status embed: {traceback.format_exc()}",
+                            flush=True)
 
                         # don't spam messages
                         await asyncio.sleep(1)
 
-        print("[INFO ] [PlayerStatusHandler] PlayerStatusHandler was aborted")
-        self.task = None
+        print("[INFO ] [PlayerStatusHandler] PlayerStatusHandler was aborted", flush=True)
 
-    def get_entry_dependent_settings(self, entry):
+    def get_entry_dependent_settings(self, entry, config):
         if entry.isOnlineMessage:
             overrideColor = config.color
             indicator = "👤"
