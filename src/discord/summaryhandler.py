@@ -100,7 +100,7 @@ class SummaryHandler:
                 if pending is not None:
                     current = currentDataCopy[serverId]
 
-                    if not self.update_is_necessary(pending, current):
+                    if not self.update_is_necessary(serverId, pending, current):
                         continue
 
                     onlineSign = "🟢" if pending.onlineState == OnlineState.Online else "🔴"
@@ -121,7 +121,7 @@ class SummaryHandler:
         print("[INFO ] [SummaryHandler] SummaryHandler was aborted")
         self.task = None
 
-    def update_is_necessary(self, pending, current):
+    def update_is_necessary(self, serverId, pending, current):
         self.debugPrint(
             f"Validating if update is necessary for server {serverId}")
         if current is None:
