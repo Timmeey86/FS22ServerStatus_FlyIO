@@ -13,16 +13,16 @@ class HelperFuncs:
         return None if jsonStr == "null" else datetime.date.fromisoformat(jsonStr)
 
     @staticmethod
-    def to_json(obj) -> str:
-        return json.dumps(obj, default=lambda innerObj: getattr(innerObj, '__dict__', str(innerObj)))
+    def to_json(obj, indentation=None) -> str:
+        return json.dumps(obj, indent=indentation, default=lambda innerObj: getattr(innerObj, '__dict__', str(innerObj)))
 
 
 class PlayerServerStats:
     """This class stores the online times of a single player on different servers for a single day"""
 
     def __init__(self, playerName: str):
-        self.playerName = playerName
-        self.onlineTimes = {}
+        self.playerName: str = playerName
+        self.onlineTimes: dict[int, int] = {}
 
     def add_online_time(self, serverId: int, onlineTime: int):
         if serverId not in self.onlineTimes:
@@ -112,7 +112,7 @@ class TotalStats:
     def get_online_time(self, playerName: str) -> int:
         return sum(stats.get_online_time(playerName) for stats in self.stats.values())        
 
-    def get_server_stats(self, serverId: int) -> dict[str, int]:
+    def get_total_stats(self) -> dict[str, int]:
         """Counts the total online times for each player, independent of day and server"""
         stats: dict[str, int] = {}
         for dailyStats in self.stats.values():
@@ -122,13 +122,26 @@ class TotalStats:
                 stats[playerName] += dailyStats.get_online_time(playerName)
         return stats
 
+    def get_server_stats(self, serverId: int) -> dict[str, int]:
+        """Counts the total online times for each player, independent of the day, but for a single server only"""
+        stats: dict[str, int] = {}
+        for dailyStats in self.stats.values():
+            for playerName, onlineTime in dailyStats.get_server_stats(serverId).items():
+                if playerName not in stats:
+                    stats[playerName] = 0
+                stats[playerName] += onlineTime
+        return stats
+
     def add_online_time(self, serverId: int, playerName: str, onlineTime: int):
         """Adds an online time for the given player for today"""
+        today = datetime.date.today()
         if not self.lastUpdate:
-            self.lastUpdate = datetime.date.today()
-        daysSinceLastUdpate = (datetime.date.today() - self.lastUpdate).days
+            self.lastUpdate = today
+        daysSinceLastUdpate = (today - self.lastUpdate).days
         if daysSinceLastUdpate > 0:
             self.shift_entries(daysSinceLastUdpate)
+            self.lastUpdate = today
+        self.stats[0].add_online_time(serverId, playerName, onlineTime)
 
     def shift_entries(self, daysSinceLastUdpate: int):
         """Shifts all entries by one, dropping the last one and adding an empty first one.
@@ -136,13 +149,14 @@ class TotalStats:
         If nobody has been online on a given day, or the bot was offline, data will be shifted accordingly."""
         numEntries = len(self.stats)
         for _ in range(daysSinceLastUdpate):
-            for i in range(numEntries - 1, 1, -1):
+            for i in range(numEntries - 1, 0, -1):
                 self.stats[i] = self.stats[i-1]
             self.stats[0] = DailyStats()
 
     def to_json(self) -> str:
         tmpDict = {"lastUpdate": HelperFuncs().date_to_json(self.lastUpdate)}
         tmpDict["stats"] = HelperFuncs().to_json(self.stats)
+        return tmpDict
 
     @classmethod
     def from_json(cls, j: str):
