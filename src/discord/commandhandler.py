@@ -5,6 +5,8 @@ from discord.infopanelhandler import InfoPanelHandler
 from discord.playerstatushandler import PlayerStatusHandler
 from discord.serverstatushandler import ServerStatusHandler
 from discord.summaryhandler import SummaryHandler
+from stats.statstracker import OnlineTimeTracker
+from stats.playertracker import PlayerTracker
 import traceback
 
 
@@ -19,6 +21,11 @@ class CommandHandler:
         self.playerStatusHandler = playerStatusHandler
         self.serverStatusHandler = serverStatusHandler
         self.summaryHandler = summaryHandler
+        self.playerTracker: PlayerTracker = None
+
+    def set_time_tracker(self, timeTracker: OnlineTimeTracker):
+        if timeTracker:
+            self.playerTracker = PlayerTracker(timeTracker)
 
     def restore_servers(self, serverConfigs):
         with self.lock:
@@ -162,6 +169,7 @@ class CommandHandler:
             del self.serverConfigs[id]
         await interaction.response.send_message(content=f"Successfully removed server with ID {id}", ephemeral=True)
 
+
     def add_tracker(self, serverConfig):
         tracker = ServerTracker(serverConfig)
         tracker.events.initial += self.infoPanelHandler.on_initial_event
@@ -171,6 +179,11 @@ class CommandHandler:
         tracker.events.playerWentOffline += self.playerStatusHandler.on_player_offline
         tracker.events.playerAdminStateChanged += self.playerStatusHandler.on_player_admin
         tracker.events.serverStatusChanged += self.serverStatusHandler.on_server_status_changed
+
+        if self.playerTracker:
+            tracker.events.playerWentOffline += self.playerTracker.on_player_offline
+            tracker.events.updated += self.playerTracker.on_updated
+
         tracker.start_tracker()
         self.serverTrackers[serverConfig.id] = tracker
 

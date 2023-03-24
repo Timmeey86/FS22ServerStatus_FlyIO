@@ -147,6 +147,7 @@ async def on_ready():
         handlePotentialTaskException(playerStatusHandler.task, "Player Status Handler")
         handlePotentialTaskException(serverStatusHandler.task, "Server Status Handler")
         handlePotentialTaskException(summaryHandler.task, "Summary Handler")
+        persistenceDataMapper.store_time_tracking_data(storageRootPath)
         sys.stdout.flush()
 
     print("[INFO ] [main] Waiting for threads to end")

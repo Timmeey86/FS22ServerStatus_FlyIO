@@ -1,4 +1,4 @@
-from statstracker import PlayerServerStats, ServerPlayerStats, DailyStats, TotalStats, HelperFuncs
+from statstracker import PlayerServerStats, ServerPlayerStats, DailyStats, OnlineTimeTracker, HelperFuncs
 import unittest
 import datetime
 import json
@@ -70,7 +70,7 @@ class TestDailyStats(unittest.TestCase):
         j2 = HelperFuncs().to_json(DailyStats.from_dict(json.loads(j)))
         self.assertEqual(j, j2)
 
-class TestTotalStats(unittest.TestCase):
+class TestOnlineTimeTracker(unittest.TestCase):
 
     def setUp(self):
         self.numDays = 3
@@ -81,13 +81,13 @@ class TestTotalStats(unittest.TestCase):
         self.stats[ONE_DAY_BEFORE].add_online_time(FIRST_SERVER, FIRST_PLAYER, 2)
         self.stats[TWO_DAYS_BEFORE].add_online_time(FIRST_SERVER, SECOND_PLAYER, 5)
         self.lastUpdate = datetime.date.today() - datetime.timedelta(days=1) # yesterday
-        self.sut = TotalStats(self.stats, self.lastUpdate)
+        self.sut = OnlineTimeTracker(self.stats, self.lastUpdate)
 
     def test_onlineTimes(self):
         self.assertEqual(self.sut.get_online_time(FIRST_PLAYER), 5+4+2)
         self.assertEqual(self.sut.get_online_time(SECOND_PLAYER), 3+5)
 
-    def test_totalStats(self):
+    def test_OnlineTimeTracker(self):
         expectedDict = {
             FIRST_PLAYER: 5+4+2,
             SECOND_PLAYER: 3+5
@@ -126,14 +126,16 @@ class TestTotalStats(unittest.TestCase):
         self.assertEqual(self.sut.get_online_time(SECOND_PLAYER), 0)
 
     def test_emptyStatsTracker(self):
-        sut2 = TotalStats.create_new()
+        numDays = 42
+        sut2 = OnlineTimeTracker.create_new(numDays)
         sut2.add_online_time(FIRST_SERVER, FIRST_PLAYER, 1)
 
+        self.assertEqual(len(sut2.stats), numDays)
         self.assertEqual(sut2.get_online_time(FIRST_PLAYER), 1)
 
     def test_serialization(self):
         j = self.sut.to_json()
-        j2 = TotalStats.from_json(j).to_json()
+        j2 = OnlineTimeTracker.from_json(j).to_json()
         self.assertEqual(j, j2)
 
 if __name__ == "__main__":

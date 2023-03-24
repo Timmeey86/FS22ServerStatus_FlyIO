@@ -107,7 +107,7 @@ class DailyStats:
         return result
 
 
-class TotalStats:
+class OnlineTimeTracker:
     """This class keeps track of the online times of configured amount of days"""
 
     def __init__(self, stats: dict[int, DailyStats], lastUpdate: datetime.date):
@@ -117,7 +117,7 @@ class TotalStats:
     @classmethod
     def create_new(cls, maxDays: int = 14):
         stats: dict[int, DailyStats] = {
-            i: DailyStats() for i in range(maxDays - 1)}
+            i: DailyStats() for i in range(maxDays)}
         return cls(stats=stats, lastUpdate=None)
 
     def get_online_time(self, playerName: str) -> int:

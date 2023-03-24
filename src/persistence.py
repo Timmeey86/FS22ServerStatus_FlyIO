@@ -4,6 +4,8 @@ from discord.playerstatushandler import PlayerStatusConfig, PlayerStatusHandler
 from discord.serverstatushandler import ServerStatusConfig, ServerStatusHandler
 from discord.summaryhandler import SummaryConfig, SummaryHandler
 from fs22.fs22server import FS22ServerConfig
+from stats.statstracker import OnlineTimeTracker
+from stats.playertracker import PlayerTracker
 import json
 import os
 import traceback
@@ -54,6 +56,9 @@ class PersistenceDataMapper:
 
     def get_config_file(self, configFolder):
         return os.path.join(configFolder, "config.json")
+    
+    def get_timetracker_file(self, configFolder):
+        return os.path.join(configFolder, "timetracking.json")
 
     def store_data(self, storageRootPath):
         jsonData = self.store_as_json()
@@ -64,10 +69,22 @@ class PersistenceDataMapper:
             file.write(jsonData)
 
     async def restore_data(self, storageRootPath, discordClient):
-        filePath=self.get_config_file(self.get_config_folder(storageRootPath))
+        configFolder = self.get_config_folder(storageRootPath)
+        timetrackerFilePath = self.get_timetracker_file(configFolder)
+        timetracker: OnlineTimeTracker = None
+        try:
+            if os.path.exists(timetrackerFilePath):
+                with open(timetrackerFilePath, "r") as file:
+                    timetracker = OnlineTimeTracker.from_json(file.read())
+        except Exception:
+            print(f"[WARN ] [Persistence] Failed restoring time tracker: {traceback.format_exc()}")
+        if not timetracker:
+            timetracker = OnlineTimeTracker.create_new()
+
+        filePath=self.get_config_file(configFolder)
         if os.path.exists(filePath):
             with open(filePath, "r") as file:
-                await self.restore_from_json(file.read(), discordClient)
+                await self.restore_from_json(file.read(), discordClient, timetracker)
 
     def store_as_json(self):
         botConfiguration = BotConfiguration()
@@ -114,7 +131,17 @@ class PersistenceDataMapper:
 
         return to_json(botConfiguration)
 
-    async def restore_from_json(self, jsonString, discordClient):
+    def store_time_tracking_data(self, storageRootPath: str):
+        if self.commandHandler.playerTracker is not None:
+            try:
+                jsonData = self.commandHandler.playerTracker.get_current_data()
+                with open(self.get_timetracker_file(self.get_config_folder(storageRootPath)), "w") as file:
+                    file.write(jsonData)
+            except Exception:
+                print(f"[WARN ] [Persistence] Failed writing time tracking data: {traceback.format_exc()}")
+        
+    async def restore_from_json(self, jsonString, discordClient, timetracker):
+        print("[INFO ] [Persistence] Restoring config from JSON")
         data = json.loads(jsonString)
 
         serverConfigsDict = data["serverConfigs"]
@@ -135,6 +162,8 @@ class PersistenceDataMapper:
             serverConfigs[serverId] = fs22serverConfig
 
         # Register the configs
+        if timetracker is not None:
+            self.commandHandler.set_time_tracker(timetracker)
         self.commandHandler.restore_servers(serverConfigs)
 
         # Now restore the settings for the individual handlers
