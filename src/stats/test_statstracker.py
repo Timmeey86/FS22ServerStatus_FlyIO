@@ -1,6 +1,7 @@
 from statstracker import PlayerServerStats, ServerPlayerStats, DailyStats, TotalStats, HelperFuncs
 import unittest
 import datetime
+import json
 
 MOST_RECENT_DAY = 0
 ONE_DAY_BEFORE = 1
@@ -24,7 +25,7 @@ class TestPlayerServerStats(unittest.TestCase):
 
     def test_playerserverstats_serialization(self):
         j = HelperFuncs().to_json(self.sut)
-        j2 = HelperFuncs.to_json(PlayerServerStats.from_json(j))
+        j2 = HelperFuncs.to_json(PlayerServerStats.from_dict(json.loads(j)))
         self.assertEqual(j, j2)
 
 class TestServerPlayerStats(unittest.TestCase):
@@ -41,7 +42,7 @@ class TestServerPlayerStats(unittest.TestCase):
 
     def test_serverplayerstats_serialization(self):
         j = HelperFuncs().to_json(self.sut)
-        j2 = HelperFuncs.to_json(ServerPlayerStats.from_json(j))
+        j2 = HelperFuncs.to_json(ServerPlayerStats.from_dict(json.loads(j)))
         self.assertEqual(j, j2)
 
 class TestDailyStats(unittest.TestCase):
@@ -63,6 +64,11 @@ class TestDailyStats(unittest.TestCase):
         expectedDict = {FIRST_PLAYER: 5, SECOND_PLAYER: 3}
         self.assertEqual(self.sut.get_server_stats(FIRST_SERVER), expectedDict)
         self.assertEqual(self.sut.get_server_stats(500), {})
+
+    def test_serialization(self):
+        j = HelperFuncs().to_json(self.sut)
+        j2 = HelperFuncs().to_json(DailyStats.from_dict(json.loads(j)))
+        self.assertEqual(j, j2)
 
 class TestTotalStats(unittest.TestCase):
 
@@ -124,6 +130,11 @@ class TestTotalStats(unittest.TestCase):
         sut2.add_online_time(FIRST_SERVER, FIRST_PLAYER, 1)
 
         self.assertEqual(sut2.get_online_time(FIRST_PLAYER), 1)
+
+    def test_serialization(self):
+        j = self.sut.to_json()
+        j2 = TotalStats.from_json(j).to_json()
+        self.assertEqual(j, j2)
 
 if __name__ == "__main__":
     unittest.main()

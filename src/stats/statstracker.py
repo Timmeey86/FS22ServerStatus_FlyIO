@@ -30,8 +30,7 @@ class PlayerServerStats:
         self.onlineTimes[serverId] += onlineTime
 
     @classmethod
-    def from_json(cls, jsonStr: str):
-        data: dict = json.loads(jsonStr)
+    def from_dict(cls, data: dict[str, any]):
         playerName: str = data["playerName"]
         onlineTimes = {
             int(serverId): int(onlineTime) for serverId, onlineTime in data["onlineTimes"].items()
@@ -54,8 +53,7 @@ class ServerPlayerStats:
         self.onlineTimes[playerName] += onlineTime
 
     @classmethod
-    def from_json(cls, jsonStr: str):
-        data: dict = json.loads(jsonStr)
+    def from_dict(cls, data: dict[str, any]):
         serverId = int(data["serverId"])
         onlineTimes = {
             playerName: int(onlineTime) for playerName, onlineTime in data["onlineTimes"].items()
@@ -97,6 +95,18 @@ class DailyStats:
     def get_servers(self) -> list[int]:
         return self.statsPerServer.keys()
 
+    @classmethod
+    def from_dict(cls, data: dict[str, dict[str, any]]):
+        result = cls()
+        result.statsPerPlayer = {
+            playerName: PlayerServerStats.from_dict(dailyData)
+            for playerName, dailyData in data["statsPerPlayer"].items()}
+        result.statsPerServer = {
+            int(serverIdStr): ServerPlayerStats.from_dict(dailyData)
+            for serverIdStr, dailyData in data["statsPerServer"].items()}
+        return result
+
+
 class TotalStats:
     """This class keeps track of the online times of configured amount of days"""
 
@@ -105,12 +115,13 @@ class TotalStats:
         self.lastUpdate = lastUpdate
 
     @classmethod
-    def create_new(cls, maxDays: int = 14):  
-        stats: dict[int, DailyStats] = {i: DailyStats() for i in range(maxDays - 1)}
+    def create_new(cls, maxDays: int = 14):
+        stats: dict[int, DailyStats] = {
+            i: DailyStats() for i in range(maxDays - 1)}
         return cls(stats=stats, lastUpdate=None)
 
     def get_online_time(self, playerName: str) -> int:
-        return sum(stats.get_online_time(playerName) for stats in self.stats.values())        
+        return sum(stats.get_online_time(playerName) for stats in self.stats.values())
 
     def get_total_stats(self) -> dict[str, int]:
         """Counts the total online times for each player, independent of day and server"""
@@ -145,7 +156,7 @@ class TotalStats:
 
     def shift_entries(self, daysSinceLastUdpate: int):
         """Shifts all entries by one, dropping the last one and adding an empty first one.
-        
+
         If nobody has been online on a given day, or the bot was offline, data will be shifted accordingly."""
         numEntries = len(self.stats)
         for _ in range(daysSinceLastUdpate):
@@ -153,14 +164,20 @@ class TotalStats:
                 self.stats[i] = self.stats[i-1]
             self.stats[0] = DailyStats()
 
-    def to_json(self) -> str:
+    def to_json(self, indent=None) -> str:
         tmpDict = {"lastUpdate": HelperFuncs().date_to_json(self.lastUpdate)}
-        tmpDict["stats"] = HelperFuncs().to_json(self.stats)
-        return tmpDict
+        tmpDict["stats"] = self.stats
+        return HelperFuncs().to_json(tmpDict, indent)
 
     @classmethod
     def from_json(cls, j: str):
         tmpDict = json.loads(j)
-        lastUpdate: datetime.date = HelperFuncs().json_to_date("lastUpdate")
-        stats: dict[int, DailyStats] = {}
+
+        lastUpdate: datetime.date = HelperFuncs(
+        ).json_to_date(tmpDict["lastUpdate"])
+        tmpStats: dict[str, dict[str, dict[str, any]]] = tmpDict["stats"]
+        stats: dict[int, DailyStats] = {
+            int(indexStr): DailyStats.from_dict(dailyStatsDict)
+            for indexStr, dailyStatsDict in tmpStats.items()
+        }
         return cls(stats, lastUpdate)
