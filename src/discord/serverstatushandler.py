@@ -64,6 +64,11 @@ class ServerStatusHandler:
         if self.task is not None:
             self.enabled = False
 
+    def remove_config(self, serverId):
+        with self.lock:
+            del self.configs[serverId]
+            del self.pendingData[serverId]
+
     async def wait_for_completion(self):
         counter = 0
         while counter < 70 and not self.task.done():

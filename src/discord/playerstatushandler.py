@@ -52,6 +52,11 @@ class PlayerStatusHandler:
         with self.lock:
             return None if serverId not in self.configs else self.configs[serverId]
 
+    def remove_config(self, serverId):
+        with self.lock:
+            del self.configs[serverId]
+            del self.pendingData[serverId]
+
     async def track_server(self, serverId, interaction, title, icon, color):
         # TOOD: Status message about the server being tracked
         playerStatusConfig = PlayerStatusConfig(title, icon, color, interaction.channel)

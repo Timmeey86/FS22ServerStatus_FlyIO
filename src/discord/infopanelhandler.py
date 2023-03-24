@@ -46,6 +46,11 @@ class InfoPanelHandler:
         with self.lock:
             return None if serverId not in self.configs else self.configs[serverId]
 
+    def remove_config(self, serverId):
+        with self.lock:
+            del self.configs[serverId]
+            del self.pendingServerData[serverId]
+
     async def create_embed(self, serverId, interaction, ip, port, icon, title, color):
         embed = discord.Embed(title="Pending...", color=int(color, 16))
         message = await interaction.channel.send(embed=embed)

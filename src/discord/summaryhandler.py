@@ -67,6 +67,12 @@ class SummaryHandler:
         with self.lock:
             return None if serverId not in self.configs else self.configs[serverId]
 
+    def remove_config(self, serverId):
+        with self.lock:
+            del self.configs[serverId]
+            del self.pendingData[serverId]
+            del self.currentData[serverId]
+
     async def track_server(self, serverId, interaction, shortName):
         summaryConfig = SummaryConfig(shortName, interaction.channel)
         self.add_config(serverId, summaryConfig)

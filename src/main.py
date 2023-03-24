@@ -1,6 +1,4 @@
 import asyncio
-from fs22.fs22server import FS22ServerConfig
-from fs22.servertracker import ServerTracker
 from discord.infopanelhandler import InfoPanelHandler
 from discord.playerstatushandler import PlayerStatusHandler
 from discord.serverstatushandler import ServerStatusHandler
@@ -136,24 +134,11 @@ async def on_ready():
     except Exception:
         print(f"[INFO ] [main] Failed waiting for tree sync: {traceback.format_exc()}")
 
-    for serverConfig in commandHandler.serverConfigs.values():
-        tracker = ServerTracker(serverConfig)
-        tracker.events.initial += infoPanelHandler.on_initial_event
-        tracker.events.updated += infoPanelHandler.on_updated
-        tracker.events.updated += summaryHandler.on_updated
-        tracker.events.playerWentOnline += playerStatusHandler.on_player_online
-        tracker.events.playerWentOffline += playerStatusHandler.on_player_offline
-        tracker.events.playerAdminStateChanged += playerStatusHandler.on_player_admin
-        tracker.events.serverStatusChanged += serverStatusHandler.on_server_status_changed
-        #tracker.events.serverStatusChanged += summaryHandler.on_server_status_changed
-        #tracker.events.playerCountChanged += summaryHandler.on_player_count_changed
-        tracker.start_tracker()
-
-    print("[INFO ] [main] Finished initialization")
     infoPanelHandler.start()
     playerStatusHandler.start()
     serverStatusHandler.start()
     summaryHandler.start()
+    print("[INFO ] [main] Finished initialization")
 
     global stopped
     while stopped == False:
