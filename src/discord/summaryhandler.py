@@ -159,34 +159,6 @@ class SummaryHandler:
     ### Event listeners ###
 
     def on_updated(self, serverId, serverData):
-        if serverId not in self.configs:
-            # The server is not (yet) tracked. Store the update in case it gets tracked later
-            with self.lock:
-                self.pendingData[serverId] = SummaryStatus(
-                    str(len(serverData.onlinePlayers)), serverData.maxPlayers, serverData.status, None)
-
-    def on_server_status_changed(self, serverId, serverData):
-        if serverId not in self.configs:
-            return
         with self.lock:
-            self.debugPrint(f"Server status on tracked server {serverId} changed to {serverData.status}")
-            current = self.currentData[serverId]
-            if current is not None:
-                self.pendingData[serverId] = SummaryStatus(
-                    str(len(serverData.onlinePlayers)), serverData.maxPlayers, serverData.status, None)
-            else:
-                self.pendingData[serverId] = SummaryStatus(
-                    "0", serverData.maxPlayers, serverData.status, None)
-
-    def on_player_count_changed(self, serverId, playerCount):
-        if serverId not in self.configs:
-            return
-        with self.lock:
-            self.debugPrint(f"Player count on tracked server {serverId} changed to {playerCount}")
-            current = self.currentData[serverId]
-            if current is not None:
-                self.pendingData[serverId] = SummaryStatus(
-                    str(playerCount), current.maxPlayers, current.onlineState, None)
-            else:
-                self.pendingData[serverId] = SummaryStatus(
-                    str(playerCount), "0", OnlineState.Unknown, None)
+            self.pendingData[serverId] = SummaryStatus(
+                str(len(serverData.onlinePlayers)), serverData.maxPlayers, serverData.status, None)

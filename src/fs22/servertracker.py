@@ -48,7 +48,7 @@ class ServerTracker:
                 else:
                     print("[ServerTracker] No status")
             except Exception:
-                print("[ServerTracker] Error: %s" % traceback.format_exc())
+                print(f"[ServerTracker] Error: {traceback.format_exc()}")
             await asyncio.sleep(5)
 
         print("[ServerTracker] Server tracking has stopped")
@@ -62,6 +62,7 @@ class ServerTracker:
 
         # Handle server state changes and send full data in that case
         if self.lastknownServerData.status != currentData.status:
+            print(f"[INFO ] [ServerTracker] Server {self.serverId} is now {currentData.status}")
             self.events.serverStatusChanged(self.serverId, currentData)
 
         # Handle recently logged in players now

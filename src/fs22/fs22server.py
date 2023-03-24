@@ -1,6 +1,7 @@
 from enum import Enum
 import urllib3
 import xmltodict
+import traceback
 
 
 class FS22ServerConfig:
@@ -60,6 +61,7 @@ class FS22ServerAccess:
 
     def __init__(self, serverConfig):
         self.serverXmlUrl = serverConfig.status_xml_url()
+        self.serverConfig = serverConfig
 
     def get_current_status(self):
         """Retrieves the current server status from the XML file"""
@@ -76,12 +78,12 @@ class FS22ServerAccess:
             if response.status == 200:
                 try:
                     return xmltodict.parse(response.data)
-                except Exception as e:
-                    print("Parsing error: %s\n" % e)
+                except Exception:
+                    print(f"[WARN ] [FS22Server] Could not parse data of server {self.serverConfig.id}: {traceback.format_exc()}")
             else:
-                print("HTTP Error: %s\n" % response.status)
-        except urllib3.exceptions.HTTPError as e:
-            print("HTTP Error: %s\n" % e)
+                print(f"[WARN ] [FS22Server] Reached server {self.serverConfig.id}, but failed reading XML: HTTP Response Code {response.status}")
+        except Exception:
+            print(f"[INFO ] [FS22Server] Server {self.serverConfig.id} unreachable")
 
         return None
 

@@ -18,9 +18,10 @@ class ServerStatusConfig:
 class ServerStatusMessage:
     """Stores a message to be published in the server status message channel"""
     
-    def __init__(self, isOnlineMessage = False, isOfflineMessage = False):
+    def __init__(self, isOnlineMessage = False, isOfflineMessage = False, isUnreachableMessage = False):
         self.isOnlineMessage = isOnlineMessage
         self.isOfflineMessage = isOfflineMessage
+        self.isUnreachableMessage = isUnreachableMessage
 
 class ServerStatusHandler:
     """This class is responsible for posting messages whenever the server goes offline or comes back online"""
@@ -102,11 +103,14 @@ class ServerStatusHandler:
                         elif entry.isOfflineMessage:
                             indicator = "🔴"
                             statusPart = "now offline"
+                        elif entry.isUnreachableMessage:
+                            indicator = "🔴"
+                            statusPart = "now unreachable (host offline)"
 
                         try:
                             message = f"{indicator} {config.icon} **{config.title}** is {statusPart}"
                             embed = discord.Embed(description=message, color=int(config.color,16))
-                            await channel.send(embed=embed)
+                            await config.channel.send(embed=embed)
                         except Exception:
                             print(
                                 f"[WARN ] [ServerStatusHandler] Failed creating a server status embed: {traceback.format_exc()}"
@@ -124,4 +128,5 @@ class ServerStatusHandler:
             if serverId in self.pendingData:
                 self.pendingData[serverId].append(ServerStatusMessage(
                         isOnlineMessage=serverData.status == OnlineState.Online,
-                        isOfflineMessage=serverData.status == OnlineState.Offline))
+                        isOfflineMessage=serverData.status == OnlineState.Offline,
+                        isUnreachableMessage=serverData.status == OnlineState.Unknown))

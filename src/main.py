@@ -136,20 +136,7 @@ async def on_ready():
     except Exception:
         print(f"[INFO ] [main] Failed waiting for tree sync: {traceback.format_exc()}")
 
-
-    serverA = FS22ServerConfig(0, os.getenv("SERVER_A_IP"), os.getenv(
-        "SERVER_A_PORT"), os.getenv("SERVER_A_APICODE"), "🇬🇧", "Server A", "206694", "726322101786509335")
-    serverB = FS22ServerConfig(1, os.getenv("SERVER_B_IP"), os.getenv(
-        "SERVER_B_PORT"), os.getenv("SERVER_B_APICODE"), "🇵🇱", "Server B", "FFFF00", "726322101786509335")
-    serverC = FS22ServerConfig(2, os.getenv("SERVER_C_IP"), os.getenv(
-        "SERVER_C_PORT"), os.getenv("SERVER_C_APICODE"), "🇩🇪", "Server C", "57F288", "726322101786509335")
-    serverD = FS22ServerConfig(3, os.getenv("SERVER_D_IP"), os.getenv(
-        "SERVER_D_PORT"), os.getenv("SERVER_D_APICODE"), "🇮🇹", "Server D", "9C59B6", "726322101786509335")
-
-    serverConfigs = {0: serverA, 1: serverB, 2: serverC, 3: serverD}
-    commandHandler.restore_servers(serverConfigs)
-
-    for serverConfig in serverConfigs.values():
+    for serverConfig in commandHandler.serverConfigs.values():
         tracker = ServerTracker(serverConfig)
         tracker.events.initial += infoPanelHandler.on_initial_event
         tracker.events.updated += infoPanelHandler.on_updated
@@ -158,8 +145,8 @@ async def on_ready():
         tracker.events.playerWentOffline += playerStatusHandler.on_player_offline
         tracker.events.playerAdminStateChanged += playerStatusHandler.on_player_admin
         tracker.events.serverStatusChanged += serverStatusHandler.on_server_status_changed
-        tracker.events.serverStatusChanged += summaryHandler.on_server_status_changed
-        tracker.events.playerCountChanged += summaryHandler.on_player_count_changed
+        #tracker.events.serverStatusChanged += summaryHandler.on_server_status_changed
+        #tracker.events.playerCountChanged += summaryHandler.on_player_count_changed
         tracker.start_tracker()
 
     print("[INFO ] [main] Finished initialization")
@@ -175,6 +162,7 @@ async def on_ready():
         handlePotentialTaskException(playerStatusHandler.task, "Player Status Handler")
         handlePotentialTaskException(serverStatusHandler.task, "Server Status Handler")
         handlePotentialTaskException(summaryHandler.task, "Summary Handler")
+        sys.stdout.flush()
 
     print("[INFO ] [main] Waiting for threads to end")
     infoPanelHandler.stop()
@@ -209,7 +197,7 @@ def signal_handler(sig, frame):
 
 signal.signal(signal.SIGINT, signal_handler)
 try:
-    if os.getenv("SERVER_A_IP") is None:
+    if os.getenv("DISCORD_TOKEN") is None:
         print("[INFO ] [main] Loading local environment")
         load_dotenv()
     else:
