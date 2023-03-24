@@ -173,8 +173,8 @@ class TotalStats:
     def from_json(cls, j: str):
         tmpDict = json.loads(j)
 
-        lastUpdate: datetime.date = HelperFuncs(
-        ).json_to_date(tmpDict["lastUpdate"])
+        lastUpdate: datetime.date = \
+            HelperFuncs().json_to_date(tmpDict["lastUpdate"])
         tmpStats: dict[str, dict[str, dict[str, any]]] = tmpDict["stats"]
         stats: dict[int, DailyStats] = {
             int(indexStr): DailyStats.from_dict(dailyStatsDict)
