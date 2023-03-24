@@ -119,6 +119,11 @@ class TestTotalStats(unittest.TestCase):
         self.assertEqual(self.sut.get_online_time(FIRST_PLAYER), 0)
         self.assertEqual(self.sut.get_online_time(SECOND_PLAYER), 0)
 
+    def test_emptyStatsTracker(self):
+        sut2 = TotalStats.create_new()
+        sut2.add_online_time(FIRST_SERVER, FIRST_PLAYER, 1)
+
+        self.assertEqual(sut2.get_online_time(FIRST_PLAYER), 1)
+
 if __name__ == "__main__":
     unittest.main()
-

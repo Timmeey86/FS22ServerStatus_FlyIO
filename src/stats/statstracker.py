@@ -100,9 +100,9 @@ class DailyStats:
 class TotalStats:
     """This class keeps track of the online times of configured amount of days"""
 
-    def __init__(self, stats, lastUpdate):
-        self.stats: dict[int, DailyStats] = stats
-        self.lastUpdate: dateTime.date = lastUpdate
+    def __init__(self, stats: dict[int, DailyStats], lastUpdate: datetime.date):
+        self.stats = stats
+        self.lastUpdate = lastUpdate
 
     @classmethod
     def create_new(cls, maxDays: int = 14):  
