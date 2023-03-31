@@ -122,15 +122,16 @@ class OnlineTimeTracker:
 
     def get_online_time(self, playerName: str) -> int:
         return sum(stats.get_online_time(playerName) for stats in self.stats.values())
-
-    def get_total_stats(self) -> dict[str, int]:
+        
+    def get_total_stats(self, serverIds: list[int]) -> dict[str, int]:
         """Counts the total online times for each player, independent of day and server"""
         stats: dict[str, int] = {}
         for dailyStats in self.stats.values():
-            for playerName in dailyStats.get_online_players():
-                if playerName not in stats:
-                    stats[playerName] = 0
-                stats[playerName] += dailyStats.get_online_time(playerName)
+            for serverId in serverIds:
+                for playerName, onlineTime in dailyStats.get_server_stats(serverId).items():
+                    if playerName not in stats:
+                        stats[playerName] = 0
+                    stats[playerName] += onlineTime
         return stats
 
     def get_server_stats(self, serverId: int) -> dict[str, int]:

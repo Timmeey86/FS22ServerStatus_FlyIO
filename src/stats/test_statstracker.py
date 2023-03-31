@@ -92,7 +92,15 @@ class TestOnlineTimeTracker(unittest.TestCase):
             FIRST_PLAYER: 5+4+2,
             SECOND_PLAYER: 3+5
         }
-        self.assertEqual(self.sut.get_total_stats(), expectedDict)
+        self.assertEqual(self.sut.get_total_stats([FIRST_SERVER, SECOND_SERVER]), expectedDict)
+
+    def test_OnlineTimeTracker_singleServer(self):
+        expectedDict = {
+            FIRST_PLAYER: 5+2,
+            SECOND_PLAYER: 3+5
+        }
+        self.assertEqual(self.sut.get_total_stats([FIRST_SERVER]), expectedDict)
+
 
     def test_serverStats(self):
         expectedDictServer0 = {

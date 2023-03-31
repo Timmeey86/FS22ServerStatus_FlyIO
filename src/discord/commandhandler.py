@@ -7,33 +7,50 @@ from discord.serverstatushandler import ServerStatusHandler
 from discord.summaryhandler import SummaryHandler
 from stats.statstracker import OnlineTimeTracker
 from stats.playertracker import PlayerTracker
+from stats.statsreporter import StatsReporter
+import discord
 import traceback
 
 
 class CommandHandler:
 
-    def __init__(self, infoPanelHandler, playerStatusHandler, serverStatusHandler, summaryHandler):
+    def __init__(self, infoPanelHandler, playerStatusHandler, serverStatusHandler, summaryHandler, statsReporter):
         self.lock = Lock()
-        self.serverConfigs = {}
+        self.serverConfigs: dict[int, FS22ServerConfig] = {}
         self.serverTrackers = {}
         self.nextServerId = 0
         self.infoPanelHandler = infoPanelHandler
         self.playerStatusHandler = playerStatusHandler
         self.serverStatusHandler = serverStatusHandler
         self.summaryHandler = summaryHandler
+        self.statsReporter: StatsReporter = statsReporter
         self.playerTracker: PlayerTracker = None
 
     def set_time_tracker(self, timeTracker: OnlineTimeTracker):
         if timeTracker:
             self.playerTracker = PlayerTracker(timeTracker)
+            self.statsReporter.set_time_tracker(timeTracker)
 
-    def restore_servers(self, serverConfigs):
+    def restore_servers(self, serverConfigs: dict[int, FS22ServerConfig]):
         with self.lock:
             self.serverConfigs = serverConfigs
+            guild_to_server_mapping: dict[int, list[int]] = {}
             for id, serverConfig in serverConfigs.items():
                 if (id >= self.nextServerId):
                     self.nextServerId = id + 1
                 self.add_tracker(serverConfig)
+                if not serverConfig.guildId in guild_to_server_mapping:
+                    guild_to_server_mapping[serverConfig.guildId] = []
+                guild_to_server_mapping[serverConfig.guildId].append(id)
+            self.statsReporter.update_guild_to_server_map(self.get_guild_to_server_map(serverConfigs))
+
+    def get_guild_to_server_map(self, serverConfigs: dict[int, FS22ServerConfig]):
+        guild_to_server_mapping: dict[int, list[int]] = {}
+        for id, serverConfig in serverConfigs.items():
+            if not serverConfig.guildId in guild_to_server_mapping:
+                guild_to_server_mapping[serverConfig.guildId] = []
+            guild_to_server_mapping[serverConfig.guildId].append(id)
+        return guild_to_server_mapping
 
     def get_configs(self):
         with self.lock:
@@ -129,13 +146,21 @@ class CommandHandler:
     async def set_summary_channel(self, interaction, id, shortName):
         if not await self.check_parameters(interaction, id):
             return
-        with self.lock:
-            config = self.serverConfigs[id]
         try:
             await self.summaryHandler.track_server(id, interaction, shortName)
             await interaction.response.send_message(content="Summary successfully registered on current channel", ephemeral=True, delete_after=10)
         except Exception:
             await interaction.response.send_message(content="Failed setting up summary channel")
+            print(traceback.format_exc())
+
+    async def set_stats_channel(self, interaction: discord.Interaction):
+        if not await self.check_admin_permission(interaction):
+            return
+        try:
+            await self.statsReporter.add_embed(interaction)
+            await interaction.response.send_message(content="Stats panel registered on current channel", ephemeral=True, delete_after=10)
+        except Exception:
+            await interaction.response.send_message(content="Failed setting up stats channel")
             print(traceback.format_exc())
 
     async def set_bot_status_channel(self, interaction):
@@ -151,7 +176,8 @@ class CommandHandler:
             serverConfig = FS22ServerConfig(
                 serverId, ip, port, apiCode, icon, title, color, interaction.guild_id)
             self.serverConfigs[serverId] = serverConfig
-            self.add_tracker(serverConfig)
+            self.add_tracker(serverConfig)            
+            self.statsReporter.update_guild_to_server_map(self.get_guild_to_server_map(self.serverConfigs))
         await interaction.response.send_message(content=f"Successfully registered the server. Your server ID for {title} ({ip}:{port}) is {serverId}. " +
                                                 "Please write that down (or pin this message if in an admin-only channel), " +
                                                 "since you will need it for all further commands")
@@ -167,6 +193,7 @@ class CommandHandler:
             self.serverStatusHandler.remove_config(id)
             self.summaryHandler.remove_config(id)
             del self.serverConfigs[id]
+            self.statsReporter.update_guild_to_server_map(self.get_guild_to_server_map(self.serverConfigs))
         await interaction.response.send_message(content=f"Successfully removed server with ID {id}", ephemeral=True)
 
 

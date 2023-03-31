@@ -4,6 +4,7 @@ from discord.playerstatushandler import PlayerStatusHandler
 from discord.serverstatushandler import ServerStatusHandler
 from discord.summaryhandler import SummaryHandler
 from discord.commandhandler import CommandHandler
+from stats.statsreporter import StatsReporter
 from persistence import PersistenceDataMapper
 from dotenv import load_dotenv
 import discord
@@ -34,7 +35,8 @@ infoPanelHandler = InfoPanelHandler(client)
 playerStatusHandler = PlayerStatusHandler(client)
 serverStatusHandler = ServerStatusHandler(client)
 summaryHandler = SummaryHandler(client)
-commandHandler = CommandHandler(infoPanelHandler, playerStatusHandler, serverStatusHandler, summaryHandler)
+statsReporter = StatsReporter(client)
+commandHandler = CommandHandler(infoPanelHandler, playerStatusHandler, serverStatusHandler, summaryHandler, statsReporter)
 persistenceDataMapper = PersistenceDataMapper(commandHandler)
 
 @tree.command(name="fssb_add_embed",
@@ -77,6 +79,13 @@ async def fssb_set_summary_channel(interaction, id: int, shortname: str):
 @app_commands.describe()
 async def fssb_set_bot_status_channel(interaction):
     await commandHandler.set_bot_status_channel(interaction)
+    persistenceDataMapper.store_data(storageRootPath)
+
+@tree.command(name="fssb_set_stats_channel",
+              description="Creates an embed in this channel which displays online time stats for players")
+@app_commands.describe()
+async def fssb_set_stats_channel(interaction):
+    await commandHandler.set_stats_channel(interaction)
     persistenceDataMapper.store_data(storageRootPath)
 
 
@@ -138,6 +147,7 @@ async def on_ready():
     playerStatusHandler.start()
     serverStatusHandler.start()
     summaryHandler.start()
+    statsReporter.start()
     print("[INFO ] [main] Finished initialization")
 
     global stopped
@@ -147,6 +157,7 @@ async def on_ready():
         handlePotentialTaskException(playerStatusHandler.task, "Player Status Handler")
         handlePotentialTaskException(serverStatusHandler.task, "Server Status Handler")
         handlePotentialTaskException(summaryHandler.task, "Summary Handler")
+        handlePotentialTaskException(statsReporter.task, "Stats Reporter")
         persistenceDataMapper.store_time_tracking_data(storageRootPath)
         sys.stdout.flush()
 
@@ -155,11 +166,13 @@ async def on_ready():
     playerStatusHandler.stop()
     serverStatusHandler.stop()
     summaryHandler.stop()
+    statsReporter.stop()
 
     await infoPanelHandler.wait_for_completion()
     await playerStatusHandler.wait_for_completion()
     await serverStatusHandler.wait_for_completion()
     await summaryHandler.wait_for_completion()
+    await statsReporter.wait_for_completion()
     print("[INFO ] [main] Done")
 
     await client.close()

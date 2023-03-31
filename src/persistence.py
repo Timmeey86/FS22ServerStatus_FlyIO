@@ -5,11 +5,11 @@ from discord.serverstatushandler import ServerStatusConfig, ServerStatusHandler
 from discord.summaryhandler import SummaryConfig, SummaryHandler
 from fs22.fs22server import FS22ServerConfig
 from stats.statstracker import OnlineTimeTracker
-from stats.playertracker import PlayerTracker
+from stats.statsreporter import StatsReporter
 import json
 import os
 import traceback
-
+import discord
 
 def to_json(obj):
     return json.dumps(obj, default=lambda innerObj: getattr(innerObj, '__dict__', str(innerObj)))
@@ -40,6 +40,7 @@ class BotConfiguration:
 
     def __init__(self):
         self.serverConfigs = {}
+        self.statsEmbedsAndChannels: dict[int, int] = {}
 
     def add_server_config(self, serverId, serverConfig):
         self.serverConfigs[serverId] = serverConfig
@@ -49,7 +50,7 @@ class PersistenceDataMapper:
     """This class is responsible for translating between the active handlers and the persistent storage"""
 
     def __init__(self, commandHandler):
-        self.commandHandler = commandHandler
+        self.commandHandler: CommandHandler = commandHandler
 
     def get_config_folder(self, storageRootPath):
         return os.path.join(storageRootPath, "fssb")
@@ -127,6 +128,9 @@ class PersistenceDataMapper:
                 serverConfig.summaryChannelId = summaryConfig.channel.id
                 serverConfig.summaryShortName = summaryConfig.shortName
 
+            for embedMessage in self.commandHandler.statsReporter.embeds:
+                botConfiguration.statsEmbedsAndChannels[embedMessage.id] = embedMessage.channel.id
+
             botConfiguration.add_server_config(serverId, serverConfig)
 
         return to_json(botConfiguration)
@@ -164,6 +168,7 @@ class PersistenceDataMapper:
         # Register the configs
         if timetracker is not None:
             self.commandHandler.set_time_tracker(timetracker)
+            self.commandHandler.statsReporter.set_time_tracker(timetracker)
         self.commandHandler.restore_servers(serverConfigs)
 
         # Now restore the settings for the individual handlers
@@ -177,6 +182,9 @@ class PersistenceDataMapper:
             await self.restore_summary_handler(serverConfigDict, fs22serverConfig, discordClient)
             # TODO
             botChannelId = serverConfigDict["botChannelId"]
+
+        # Restore stats reporter
+        await self.restore_stats_embed(data.get("statsEmbedsAndChannels", {}), discordClient)
 
     async def restore_info_panel_handler(self, serverConfigDict, serverConfig, discordClient):
         """Restores the configuration for the InfoPanelHandler from the persistent storage."""
@@ -254,10 +262,18 @@ class PersistenceDataMapper:
                 print(
                     f"[WARN ] [PersistenceDataMapper] Failed restoring summary handler: {traceback.format_exc()}")
 
-                
+    async def restore_stats_embed(self, embedData: dict[str, int], discordClient: discord.Client):
+        """Restores a single embed for player stats form the persistent storage."""
 
-# TODO: Serialization, Deserialization, Channel/Embed retrieval
-# TODO: Retrieve parameters from command handler
-# TODO: Restore parameters to command handler
-# TODO: Auto-save after changes
-# TODO: Restore before tracking servers
+        embeds = []
+        for embedIdStr, channelId in embedData.items():
+            try:
+                statsChannel = await discordClient.fetch_channel(channelId)
+                embedMessage = await statsChannel.fetch_message(int(embedIdStr))
+                embeds.append(embedMessage)
+                print("[INFO] [PersistenceDataMapper] Successfully restored stats embed")
+            except Exception:
+                print(f"[WARN ] [PersistenceDataMapper] Failed restoring stats embed: {traceback.format_exc()}")
+
+        self.commandHandler.statsReporter.restore_embeds(embeds)
+            
