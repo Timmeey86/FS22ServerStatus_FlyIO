@@ -34,22 +34,19 @@ class CommandHandler:
     def restore_servers(self, serverConfigs: dict[int, FS22ServerConfig]):
         with self.lock:
             self.serverConfigs = serverConfigs
-            guild_to_server_mapping: dict[int, list[int]] = {}
             for id, serverConfig in serverConfigs.items():
                 if (id >= self.nextServerId):
                     self.nextServerId = id + 1
                 self.add_tracker(serverConfig)
-                if not serverConfig.guildId in guild_to_server_mapping:
-                    guild_to_server_mapping[serverConfig.guildId] = []
-                guild_to_server_mapping[serverConfig.guildId].append(id)
             self.statsReporter.update_guild_to_server_map(self.get_guild_to_server_map(serverConfigs))
 
     def get_guild_to_server_map(self, serverConfigs: dict[int, FS22ServerConfig]):
         guild_to_server_mapping: dict[int, list[int]] = {}
         for id, serverConfig in serverConfigs.items():
-            if not serverConfig.guildId in guild_to_server_mapping:
-                guild_to_server_mapping[serverConfig.guildId] = []
-            guild_to_server_mapping[serverConfig.guildId].append(id)
+            guildId = int(serverConfig.guildId)
+            if not guildId in guild_to_server_mapping:
+                guild_to_server_mapping[guildId] = []
+            guild_to_server_mapping[guildId].append(id)
         return guild_to_server_mapping
 
     def get_configs(self):

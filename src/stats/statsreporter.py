@@ -79,7 +79,7 @@ class StatsReporter:
 
             self.debugPrint("Starting to update embeds")
             for embedMessage in embedListCopy:
-                guildId = str(embedMessage.guild.id)
+                guildId = int(embedMessage.guild.id)
                 if guildId not in guildToServerMapCopy:
                     self.debugPrint("No server found for embed - skipping")
                     self.debugPrint(guildToServerMapCopy)
