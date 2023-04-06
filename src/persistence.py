@@ -76,10 +76,14 @@ class PersistenceDataMapper:
         try:
             if os.path.exists(timetrackerFilePath):
                 with open(timetrackerFilePath, "r") as file:
+                    print(f"[INFO ] [Persistence] Loading time tracker data from {timetrackerFilePath}")
                     timetracker = OnlineTimeTracker.from_json(file.read())
+            else:
+                print("[INFO ] [Persistence] No time tracker file found")
         except Exception:
             print(f"[WARN ] [Persistence] Failed restoring time tracker: {traceback.format_exc()}")
         if not timetracker:
+            print("[INFO ] [Persistence] Creating new time tracker")
             timetracker = OnlineTimeTracker.create_new()
 
         filePath=self.get_config_file(configFolder)
