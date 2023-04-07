@@ -6,6 +6,7 @@ from discord.summaryhandler import SummaryConfig, SummaryHandler
 from fs22.fs22server import FS22ServerConfig
 from stats.statstracker import OnlineTimeTracker
 from stats.statsreporter import StatsReporter
+from stats.playertracker import PlayerTracker
 import json
 import os
 import traceback
@@ -49,43 +50,55 @@ class BotConfiguration:
 class PersistenceDataMapper:
     """This class is responsible for translating between the active handlers and the persistent storage"""
 
-    def __init__(self, commandHandler):
+    def __init__(self, commandHandler, storageRootPath):
         self.commandHandler: CommandHandler = commandHandler
+        self.storageRootPath = storageRootPath
 
-    def get_config_folder(self, storageRootPath):
-        return os.path.join(storageRootPath, "fssb")
+    def get_config_folder(self):
+        return os.path.join(self.storageRootPath, "fssb")
 
     def get_config_file(self, configFolder):
         return os.path.join(configFolder, "config.json")
     
     def get_timetracker_file(self, configFolder):
         return os.path.join(configFolder, "timetracking.json")
+    
+    def get_backup_file(self, configFOlder):
+        return os.path.join(configFolder, "timetracking_backup.json")
 
-    def store_data(self, storageRootPath):
+    def store_data(self):
         jsonData = self.store_as_json()
-        configFolder = self.get_config_folder(storageRootPath)
+        configFolder = self.get_config_folder()
         if not os.path.exists(configFolder):
             os.mkdir(configFolder)
         with open(self.get_config_file(configFolder), "w") as file:
             file.write(jsonData)
 
-    async def restore_data(self, storageRootPath, discordClient):
-        configFolder = self.get_config_folder(storageRootPath)
+    async def get_tracking_data(self) -> str:
+        configFolder = self.get_config_folder()
         timetrackerFilePath = self.get_timetracker_file(configFolder)
-        timetracker: OnlineTimeTracker = None
-        try:
+        try:            
             if os.path.exists(timetrackerFilePath):
                 with open(timetrackerFilePath, "r") as file:
                     print(f"[INFO ] [Persistence] Loading time tracker data from {timetrackerFilePath}")
-                    timetracker = OnlineTimeTracker.from_json(file.read())
+                    return file.read()
             else:
                 print("[INFO ] [Persistence] No time tracker file found")
         except Exception:
             print(f"[WARN ] [Persistence] Failed restoring time tracker: {traceback.format_exc()}")
-        if not timetracker:
+        
+        return None
+
+    async def restore_data(self, discordClient):
+        trackingData = await self.get_tracking_data()
+        if trackingData:
+            print("[INFO ] [Persistence] Restoring time tracker from existing data")
+            timetracker = OnlineTimeTracker.from_json(trackingData)
+        else:
             print("[INFO ] [Persistence] Creating new time tracker")
             timetracker = OnlineTimeTracker.create_new()
 
+        configFolder = self.get_config_folder()
         filePath=self.get_config_file(configFolder)
         if os.path.exists(filePath):
             with open(filePath, "r") as file:
@@ -139,12 +152,19 @@ class PersistenceDataMapper:
 
         return to_json(botConfiguration)
 
-    def store_time_tracking_data(self, storageRootPath: str):
+    def store_time_tracking_data(self, timeTrackingData):
+        configFolder = self.get_config_folder()
+        timeTrackerFilePath = self.get_timetracker_file(configFolder)
+        backupFilePath = self.get_backup_file(configFolder)
         if self.commandHandler.playerTracker is not None:
             try:
-                jsonData = self.commandHandler.playerTracker.get_current_data()
-                with open(self.get_timetracker_file(self.get_config_folder(storageRootPath)), "w") as file:
-                    file.write(jsonData)
+                if os.path.exists(backupFilePath):
+                    os.remove(backupFilePath)
+                if os.path.exists(timeTrackerFilePath):
+                    os.rename(timeTrackerFilePath, backupFilePath)
+                print("[INFO ] [Persistence] Writing time tracking data")
+                with open(self.get_timetracker_file(self.get_config_folder()), "w") as file:
+                    file.write(timeTrackingData)
             except Exception:
                 print(f"[WARN ] [Persistence] Failed writing time tracking data: {traceback.format_exc()}")
         
@@ -171,7 +191,9 @@ class PersistenceDataMapper:
 
         # Register the configs
         if timetracker is not None:
-            self.commandHandler.set_time_tracker(timetracker)
+            playerTracker = PlayerTracker(timetracker)
+            self.commandHandler.set_player_tracker(playerTracker)
+            playerTracker.events.stats_updated += self.store_time_tracking_data
             self.commandHandler.statsReporter.set_time_tracker(timetracker)
         self.commandHandler.restore_servers(serverConfigs)
 

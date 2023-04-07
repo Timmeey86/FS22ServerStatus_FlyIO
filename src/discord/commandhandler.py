@@ -26,10 +26,10 @@ class CommandHandler:
         self.statsReporter: StatsReporter = statsReporter
         self.playerTracker: PlayerTracker = None
 
-    def set_time_tracker(self, timeTracker: OnlineTimeTracker):
-        if timeTracker:
-            self.playerTracker = PlayerTracker(timeTracker)
-            self.statsReporter.set_time_tracker(timeTracker)
+    def set_player_tracker(self, playerTracker: PlayerTracker):
+        if playerTracker:
+            self.playerTracker = playerTracker
+            self.statsReporter.set_time_tracker(playerTracker.timeTracker)
 
     def restore_servers(self, serverConfigs: dict[int, FS22ServerConfig]):
         with self.lock:
@@ -192,7 +192,6 @@ class CommandHandler:
             del self.serverConfigs[id]
             self.statsReporter.update_guild_to_server_map(self.get_guild_to_server_map(self.serverConfigs))
         await interaction.response.send_message(content=f"Successfully removed server with ID {id}", ephemeral=True)
-
 
     def add_tracker(self, serverConfig):
         tracker = ServerTracker(serverConfig)
