@@ -15,6 +15,7 @@ import sys
 import traceback
 
 stopped = False
+firstCallOfOnReady = True
 
 # Create a discord client to allow interacting with a discord server
 intents = discord.Intents.default()
@@ -151,6 +152,11 @@ async def on_ready():
     Tells us when the bot is logged in to discord (in the replit console)
     """
     
+    global firstCallOfOnReady
+    if firstCallOfOnReady == False:
+        return
+    firstCallOfOnReady = False
+
     # Restore existing config first
 
     await persistenceDataMapper.restore_data(client)

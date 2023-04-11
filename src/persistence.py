@@ -63,7 +63,7 @@ class PersistenceDataMapper:
     def get_timetracker_file(self, configFolder):
         return os.path.join(configFolder, "timetracking.json")
     
-    def get_backup_file(self, configFOlder):
+    def get_backup_file(self, configFolder):
         return os.path.join(configFolder, "timetracking_backup.json")
 
     def store_data(self):
