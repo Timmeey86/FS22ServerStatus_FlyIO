@@ -31,7 +31,7 @@ class ServerStatusHandler:
             print(f"[DEBUG] [ServerStatusHandler] {message}")
 
     def __init__(self, discordClient):
-        self.configs = {} # Stores a configuration object for every tracked server
+        self.configs: dict[str, ServerStatusConfig] = {} # Stores a configuration object for every tracked server
         self.pendingData = {} # Stores a list of messages for every tracked server to be posted
         self.lock = Lock()
         self.enabled = True
@@ -52,6 +52,10 @@ class ServerStatusHandler:
         # TOOD: Status message about the server being tracked
         serverStatusConfig = ServerStatusConfig(title, icon, color, interaction.channel)
         self.add_config(serverId, serverStatusConfig)
+
+    def update_icon(self, serverId, icon):
+        with self.lock:
+            self.configs[serverId].icon = icon
         
     ### Threading ###
 

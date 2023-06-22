@@ -1,4 +1,5 @@
 from threading import Lock
+from fs22.fs22server import FS22ServerConfig
 import asyncio
 import discord
 import datetime
@@ -28,7 +29,7 @@ class InfoPanelHandler:
             print(f"[DEBUG] [InfoPanelHandler] {message}")
 
     def __init__(self, discordClient):
-        self.configs = {}           # Stores the info panel configurations for each server ID
+        self.configs: dict[str, InfoPanelConfig] = {}           # Stores the info panel configurations for each server ID
         # Stores the current data which needs to be published for each server ID
         self.pendingServerData = {}
         self.lock = Lock()
@@ -57,6 +58,10 @@ class InfoPanelHandler:
         panelInfoConfig = InfoPanelConfig(
             ip, port, icon, title, interaction.channel, message, color)
         self.add_config(serverId, panelInfoConfig)
+
+    def update_icon(self, serverId, icon):
+        with self.lock:
+            self.configs[serverId].icon = icon
 
     ### Threading ###
 

@@ -19,10 +19,10 @@ class CommandHandler:
         self.serverConfigs: dict[int, FS22ServerConfig] = {}
         self.serverTrackers = {}
         self.nextServerId = 0
-        self.infoPanelHandler = infoPanelHandler
-        self.playerStatusHandler = playerStatusHandler
-        self.serverStatusHandler = serverStatusHandler
-        self.summaryHandler = summaryHandler
+        self.infoPanelHandler: InfoPanelHandler = infoPanelHandler
+        self.playerStatusHandler: PlayerStatusHandler = playerStatusHandler
+        self.serverStatusHandler:ServerStatusHandler = serverStatusHandler
+        self.summaryHandler: SummaryHandler = summaryHandler
         self.statsReporter: StatsReporter = statsReporter
         self.playerTracker: PlayerTracker = None
 
@@ -158,6 +158,20 @@ class CommandHandler:
             await interaction.response.send_message(content="Successfully updated short name", ephemeral=True, delete_after=10)
         except Exception:
             await interaction.response.send_message(content="Failed updating short name")
+            print(traceback.format_exc())
+        
+    async def update_icon(self, interaction, id, icon):
+        if not await self.check_parameters(interaction, id):
+            return
+        try:
+            with self.lock:
+                self.serverConfigs[id].icon = icon
+                self.infoPanelHandler.update_icon(id, icon)
+                self.playerStatusHandler.update_icon(id, icon)
+                self.serverStatusHandler.update_icon(id, icon)
+            await interaction.response.send_message(content="Successfully updated icon", ephemeral=True, delete_after=10)
+        except Exception:
+            await interaction.response.send_message(content="Failed updating icon")
             print(traceback.format_exc())
 
     async def set_stats_channel(self, interaction: discord.Interaction):

@@ -83,6 +83,14 @@ async def fssb_update_summary_channel(interaction, id: int, shortname: str):
     persistenceDataMapper.store_data()
 
 
+@tree.command(name="fssb_update_icon",
+              description="Updates the icon displayed for a server")
+@app_commands.describe(id="The ID of the server", icon="The new icon for the server")
+async def fssb_update_icon(interaction, id: int, icon: str):
+    await commandHandler.update_icon(interaction, id, icon)
+    persistenceDataMapper.store_data()
+
+
 @tree.command(name="fssb_set_bot_status_channel",
               description="Make this channel display status messages concerning the bot")
 @app_commands.describe()
