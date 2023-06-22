@@ -149,6 +149,16 @@ class CommandHandler:
         except Exception:
             await interaction.response.send_message(content="Failed setting up summary channel")
             print(traceback.format_exc())
+        
+    async def update_short_name(self, interaction, id, shortName):
+        if not await self.check_parameters(interaction, id):
+            return
+        try:
+            await self.summaryHandler.update_short_name(id, interaction, shortName)
+            await interaction.response.send_message(content="Successfully updated short name", ephemeral=True, delete_after=10)
+        except Exception:
+            await interaction.response.send_message(content="Failed updating short name")
+            print(traceback.format_exc())
 
     async def set_stats_channel(self, interaction: discord.Interaction):
         if not await self.check_admin_permission(interaction):

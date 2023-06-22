@@ -162,7 +162,7 @@ class PersistenceDataMapper:
                     os.remove(backupFilePath)
                 if os.path.exists(timeTrackerFilePath):
                     os.rename(timeTrackerFilePath, backupFilePath)
-                print("[INFO ] [Persistence] Writing time tracking data")
+                #print("[INFO ] [Persistence] Writing time tracking data")
                 with open(self.get_timetracker_file(self.get_config_folder()), "w") as file:
                     file.write(timeTrackingData)
             except Exception:

@@ -77,6 +77,11 @@ class SummaryHandler:
         summaryConfig = SummaryConfig(shortName, interaction.channel)
         self.add_config(serverId, summaryConfig)
 
+    async def update_short_name(self, serverId, interaction, shortName):
+        with self.lock:
+            if serverId in self.configs:
+                self.configs[serverId].shortName = shortName
+
     ### Threading ###
 
     def start(self):

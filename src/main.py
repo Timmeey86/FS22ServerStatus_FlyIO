@@ -75,6 +75,14 @@ async def fssb_set_summary_channel(interaction, id: int, shortname: str):
     persistenceDataMapper.store_data()
 
 
+@tree.command(name="fssb_update_summary_channel",
+              description="Updates the short name displayed in the channel which shows the member count")
+@app_commands.describe(id="The ID of the server", shortname="The new short name for the server")
+async def fssb_update_summary_channel(interaction, id: int, shortname: str):
+    await commandHandler.update_short_name(interaction, id, shortname)
+    persistenceDataMapper.store_data()
+
+
 @tree.command(name="fssb_set_bot_status_channel",
               description="Make this channel display status messages concerning the bot")
 @app_commands.describe()
