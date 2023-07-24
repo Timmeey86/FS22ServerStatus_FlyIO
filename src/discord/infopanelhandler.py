@@ -157,6 +157,7 @@ class InfoPanelHandler:
             f"**Map: **{serverData.mapName}\r\n"
             + f"**Status: **{serverData.status}\r\n"
             + f"**Server Time: **{self.get_server_time(serverData)}\r\n"
+            + f"**Version: **{serverData.version}\r\n"
             + f"**Mods Link: **{self.get_mods_link(serverConfig)}\r\n"
             + f"**Players Online: **{len(serverData.onlinePlayers)}/{serverData.maxPlayers}\r\n"
         ) + "**Players: **"
@@ -165,7 +166,7 @@ class InfoPanelHandler:
             message = f"{message}(none)"
         else:
             for playerName in serverData.onlinePlayers:
-                message = message + "\r\n - %s (%s min)" % (
+                message = message + "\r\n- %s (%s min)" % (
                     playerName, serverData.onlinePlayers[playerName].onlineTime)
 
         return message
