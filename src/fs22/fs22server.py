@@ -54,6 +54,7 @@ class FS22ServerStatus:
         self.maxPlayers = "Unknown"
         self.onlinePlayers = {}
         self.dayTime = "0"
+        self.version = "pending"
 
 
 class FS22ServerAccess:
@@ -108,6 +109,7 @@ class FS22ServerAccess:
         statusData.mapName = serverXmlElement["@mapName"]
         statusData.maxPlayers = serverXmlElement["Slots"]["@capacity"]
         statusData.dayTime = serverXmlElement["@dayTime"]
+        statusData.version = serverXmlElement["@version"]
         for playerElement in serverXmlElement["Slots"]["Player"]:
             # Skip empty slots
             if playerElement is None or playerElement["@isUsed"] == "false":
